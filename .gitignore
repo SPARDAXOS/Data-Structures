@@ -8,7 +8,8 @@
 #Ignore visual studio user specific settings
 *.user
 
-Build/x64/Debug/Intermediate
+
+Build/
 
 
 # Compiled Object files
