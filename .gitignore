@@ -1,6 +1,16 @@
 # Prerequisites
 *.d
 
+
+#Ignore visual studio user specific files
+*.vs
+
+#Ignore visual studio user specific settings
+*.user
+
+Build/x64/Debug/Intermediate
+
+
 # Compiled Object files
 *.slo
 *.lo
