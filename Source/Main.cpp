@@ -31,15 +31,37 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		DynamicArray<bool> Array2;
 		DynamicArray<Test> Array3;
 
-		Array.
-
-		Array.Reserve(12);
-		Array.Pushback(1);
+		//Array.Reserve(12);
+		Array.Pushback(1); //Begin
 		Array.Pushback(2);
+		Array.Pushback(3);
+		Array.Pushback(4);
+		Array.Pushback(5); //Begin + 4
+		Array.Pushback(6);
+		Array.Pushback(7);
+		Array.Pushback(8);
+		Array.Pushback(9);
+		Array.Pushback(10); //End
+		std::function<bool(const int&)> Predicate = [](const int& element) { std::cout << element << std::endl; return true; };
+
+		//Fix the complication by the End() and test it everywhere including the ctor!
+		Array.EraseIf(Array.Begin(), Predicate);
+		Array.EraseIf(Array.End(), Predicate);
+		Array.EraseIf(Array.Begin() + 4, Predicate);
+
+
+		Array.Erase(Array.Begin());
+		Array.Erase(Array.End() - 1);
+		Array.Erase(Array.Begin() + 2);
+
+		Test MyStruct;
+		Array3.Pushback(MyStruct);
 		Array3.Pushback({});
-		Array3.Pushback({});
-		Array3.PopBack();
-		Array3.PopBack();
+		Array3.Popback();
+		Array3.Popback();
+		
+	
+
 		//Array.Pushback(2);
 		//Array.Pushback(3);
 		//Array.Pushback(4);
@@ -47,14 +69,14 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		//Array.Pushback(6);
 		//Array.Pushback(7);
 
-		Array.PopBack();
-		Array.PopBack();
-		Array.PopBack();
-		Array.PopBack();
-		Array.PopBack();
-		Array.PopBack();
-		Array.PopBack();
-		Array.PopBack();
+		Array.Popback();
+		Array.Popback();
+		Array.Popback();
+		Array.Popback();
+		Array.Popback();
+		Array.Popback();
+		Array.Popback();
+		Array.Popback();
 
 		//DynamicArray<int> Array2 = std::move(Array);
 		//Array2.Pushback(8);

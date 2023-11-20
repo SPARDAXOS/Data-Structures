@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <math.h>
+#include <functional>
 
 #ifndef DYNAMIC_ARRAY
 #define DYNAMIC_ARRAY
@@ -9,6 +10,9 @@ class DynamicArray final {
 	using Type = T;
 	using Iterator = T*;
 	using Reference = T&;
+	using ConstantIterator = const T*;
+	using ConstantReference = const T&;
+	using Predicate = std::function<bool(const Type&)>;
 
 public:
 	explicit DynamicArray() noexcept = default;
@@ -64,33 +68,34 @@ public:
 	inline Reference operator[](unsigned int index) const noexcept { return m_Iterator[index]; }
 
 public:
-	void Pushback(const Type element) {
+	void Pushback(ConstantReference element) {
 		if (m_Capacity == 0)
 			Reserve(1);
 		else if (m_Size == m_Capacity)
 			Reserve(m_Capacity * 2);
 
-		//If exceeds max type
-		//If allocation fails
-		//If has no copy ctor
-
+		if (!std::copy_constructible<Type>)
+			throw std::invalid_argument("Type needs to be copy contructable!");
 
 		Iterator NewElement = new Type(element);
+		if (!NewElement)
+			throw std::bad_alloc();
+
 		std::memmove(&m_Iterator[m_Size], NewElement, sizeof(Type));
 		delete NewElement;
 		m_Size++;
 	}
-	void EmplaceBack(const Reference element) {
+	void Emplaceback(const Reference element) {
 
 	}
 
-	inline void PopBack() {
+	inline void Popback() {
 		if (m_Size == 0)
 			return;
 
 		Iterator Target = m_Iterator + (m_Size - 1);
-		//if (std::is_fundamental_v<Type>)
-		//	*Target = 0;
+		//if (std::is_fundamental<Type>)
+		//	*Target = static_cast<Type>(0);
 		if (std::destructible<Type>)
 			Target->~Type();
 
@@ -103,6 +108,79 @@ public:
 
 		return m_Iterator[index];
 	}
+
+
+
+	constexpr inline Iterator Erase(ConstantIterator iterator) {
+		if (m_Size == 0)
+			return nullptr;
+
+		if (iterator == End()) {
+			Popback();
+			return m_Iterator + (m_Size - 1);
+		}
+		else if (iterator == Begin()) {
+			m_Size--;
+			if (std::destructible<Type>)
+				iterator->~Type();
+
+			if (m_Size > 0)
+				std::shift_left(m_Iterator, End(), 1);
+			return m_Iterator;
+		}
+		else {
+			int Index = FindIndex(iterator);
+			if (Index == -1)
+				throw std::invalid_argument("Iterator out of bounds!");
+
+			//Into reusable func!
+			m_Size--;
+			if (std::destructible<Type>)
+				iterator->~Type();
+
+			std::shift_left(m_Iterator + Index, End(), 1);
+			return m_Iterator + Index;
+		}
+	}
+	constexpr inline Iterator EraseIf(ConstantIterator iterator, Predicate predicate) {
+		if (m_Size == 0)
+			return nullptr;
+
+		if (predicate(*iterator)) {
+			if (iterator == End()) {
+				Popback();
+				return m_Iterator + (m_Size - 1);
+			}
+			else if (iterator == Begin()) {
+				m_Size--;
+				if (std::destructible<Type>)
+					iterator->~Type();
+
+				if (m_Size > 0)
+					std::shift_left(m_Iterator, End(), 1);
+				return m_Iterator;
+			}
+			else {
+				int Index = FindIndex(iterator);
+				if (Index == -1)
+					throw std::invalid_argument("Iterator out of bounds!");
+
+				//Into reusable func!
+				m_Size--;
+				if (std::destructible<Type>)
+					iterator->~Type();
+
+				std::shift_left(m_Iterator + Index, End(), 1);
+				return m_Iterator + Index;
+			}
+		}
+
+		return nullptr;
+	}
+	constexpr inline Iterator Erase(ConstantIterator first, ConstantIterator last) {
+
+	}
+
 	inline void Clear() {
 		delete[] m_Iterator;
 		m_Size = 0;
@@ -116,13 +194,15 @@ public:
 	inline Reference Front() const noexcept { return m_Iterator[0]; }
 	inline Reference Back() const noexcept { return m_Iterator[m_Size - 1]; }
 	inline Iterator Begin() const noexcept { return m_Iterator; }
-	inline Iterator End() const noexcept { return &m_Iterator[m_Capacity]; }
+	inline Iterator End() const noexcept { return &m_Iterator[m_Capacity]; } //I NEED SOMETHING TO AFTER LAST AVAILABLE ELEMENT INSTEAD OF AFTER END!
 
 	inline constexpr size_t MaxSize() const noexcept { return static_cast<size_t>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
 
 	inline void Reserve(size_t capacity) {
 		if (m_Capacity > capacity)
 			return;
+		if (capacity > MaxSize())
+			throw std::length_error("Max allowed container size exceeded!");
 
 		Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * capacity));
 		if (!NewBuffer)
@@ -139,7 +219,8 @@ public:
 		m_Iterator = NewBuffer;
 	}
 
-	//PopBack
+
+
 	//Insert
 	//Swap (other vec?)`Make sure to test vecs of different template types
 	//Emplace
@@ -148,8 +229,20 @@ public:
 	//Resize
 
 private:
-
-	//Use Bitshift to remove and iterate on the array.
+	inline int FindIndex(Iterator iterator) const noexcept {
+		for (unsigned int i = 0; i < m_Size; i++) {
+			if (m_Iterator + i == iterator)
+				return i;
+		}
+		return -1;
+	}
+	inline int FindIndex(ConstantIterator iterator) const noexcept {
+		for (unsigned int i = 0; i < m_Size; i++) {
+			if (m_Iterator + i == iterator)
+				return i;
+		}
+		return -1;
+	}
 
 
 private:
