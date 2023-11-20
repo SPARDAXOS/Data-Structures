@@ -4,7 +4,20 @@
 #include "DynamicArray.h"
 
 
+class Test {
+public:
+	Test() {
+		std::cout << "ctor" << std::endl;
+	}
+	~Test() {
+		std::cout << "dtor" << std::endl;
+	}
 
+	long long number1;
+	long long number2;
+	long long number3;
+	long long number4;
+};
 int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
 
@@ -15,15 +28,35 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 
 
 		DynamicArray<int> Array;
+		DynamicArray<bool> Array2;
+		DynamicArray<Test> Array3;
+
+		Array.
+
+		Array.Reserve(12);
 		Array.Pushback(1);
 		Array.Pushback(2);
-		Array.Pushback(3);
-		Array.Pushback(4);
-		Array.Pushback(5);
-		Array.Pushback(6);
-		Array.Pushback(7);
+		Array3.Pushback({});
+		Array3.Pushback({});
+		Array3.PopBack();
+		Array3.PopBack();
+		//Array.Pushback(2);
+		//Array.Pushback(3);
+		//Array.Pushback(4);
+		//Array.Pushback(5);
+		//Array.Pushback(6);
+		//Array.Pushback(7);
 
-		//DynamicArray<int> Array2;
+		Array.PopBack();
+		Array.PopBack();
+		Array.PopBack();
+		Array.PopBack();
+		Array.PopBack();
+		Array.PopBack();
+		Array.PopBack();
+		Array.PopBack();
+
+		//DynamicArray<int> Array2 = std::move(Array);
 		//Array2.Pushback(8);
 		//Array2.Pushback(9);
 		//Array2.Pushback(10);

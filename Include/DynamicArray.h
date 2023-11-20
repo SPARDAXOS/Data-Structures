@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <math.h>
 
 #ifndef DYNAMIC_ARRAY
 #define DYNAMIC_ARRAY
@@ -39,7 +40,7 @@ public:
 	}
 
 	DynamicArray(DynamicArray&& other) noexcept {
-		this == std::move(other);
+		*this = std::move(other);
 	}
 	DynamicArray& operator=(DynamicArray&& other) noexcept {
 		if (this->m_Iterator == other.m_Iterator)
@@ -55,6 +56,8 @@ public:
 			other.m_Iterator = nullptr;
 			other.m_Size	 = 0;
 			other.m_Capacity = 0;
+
+			return *this;
 		}
 	}
 
@@ -67,13 +70,31 @@ public:
 		else if (m_Size == m_Capacity)
 			Reserve(m_Capacity * 2);
 
+		//If exceeds max type
+		//If allocation fails
+		//If has no copy ctor
 
-		const Iterator NewElement = new Type(element);
+
+		Iterator NewElement = new Type(element);
 		std::memmove(&m_Iterator[m_Size], NewElement, sizeof(Type));
+		delete NewElement;
 		m_Size++;
 	}
 	void EmplaceBack(const Reference element) {
 
+	}
+
+	inline void PopBack() {
+		if (m_Size == 0)
+			return;
+
+		Iterator Target = m_Iterator + (m_Size - 1);
+		//if (std::is_fundamental_v<Type>)
+		//	*Target = 0;
+		if (std::destructible<Type>)
+			Target->~Type();
+
+		m_Size--;
 	}
 
 	inline Type At(int index) const {
@@ -97,12 +118,17 @@ public:
 	inline Iterator Begin() const noexcept { return m_Iterator; }
 	inline Iterator End() const noexcept { return &m_Iterator[m_Capacity]; }
 
+	inline constexpr size_t MaxSize() const noexcept { return static_cast<size_t>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
+
 	inline void Reserve(size_t capacity) {
-		if (m_Capacity > capacity) //??
+		if (m_Capacity > capacity)
 			return;
 
+		Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * capacity));
+		if (!NewBuffer)
+			throw std::bad_alloc();
+
 		m_Capacity = capacity;
-		Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * m_Capacity));
 		if (m_Size == 0) {
 			m_Iterator = NewBuffer;
 			return;
@@ -112,6 +138,7 @@ public:
 		free(m_Iterator);
 		m_Iterator = NewBuffer;
 	}
+
 	//PopBack
 	//Insert
 	//Swap (other vec?)`Make sure to test vecs of different template types
