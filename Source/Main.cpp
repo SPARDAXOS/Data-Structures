@@ -42,17 +42,26 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		Array.Pushback(8);
 		Array.Pushback(9);
 		Array.Pushback(10); //End
-		std::function<bool(const int&)> Predicate = [](const int& element) { std::cout << element << std::endl; return true; };
+		std::function<bool(const int&)> Predicate = [](const int& element) { 
+			std::cout << element << std::endl; 
+			if (element == 3)
+				return false;
+			return true;
+		};
 
+
+		//Array.Erase(Array.Begin(), Array.Begin() + 2);
+		Array.EraseIf(Array.Begin() + 1, Array.Begin() + 3, Predicate);
+		Array.ShrinkToFit();
 		//Fix the complication by the End() and test it everywhere including the ctor!
-		Array.EraseIf(Array.Begin(), Predicate);
-		Array.EraseIf(Array.End(), Predicate);
-		Array.EraseIf(Array.Begin() + 4, Predicate);
+		//Array.EraseIf(Array.Begin(), Predicate);
+		//Array.EraseIf(Array.End() - 1, Predicate);
+		//Array.EraseIf(Array.Begin() + 4, Predicate);
 
 
-		Array.Erase(Array.Begin());
-		Array.Erase(Array.End() - 1);
-		Array.Erase(Array.Begin() + 2);
+		//Array.Erase(Array.Begin());
+		//Array.Erase(Array.End() - 1);
+		//Array.Erase(Array.Begin() + 2);
 
 		Test MyStruct;
 		Array3.Pushback(MyStruct);

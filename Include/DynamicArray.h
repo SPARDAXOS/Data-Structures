@@ -5,6 +5,8 @@
 #ifndef DYNAMIC_ARRAY
 #define DYNAMIC_ARRAY
 
+constexpr auto INVALID_INDEX = -1;
+
 template<typename T>
 class DynamicArray final {
 	using Type = T;
@@ -17,7 +19,7 @@ class DynamicArray final {
 public:
 	explicit DynamicArray() noexcept = default;
 	explicit DynamicArray(size_t capacity) noexcept { Reserve(capacity); }
-	explicit DynamicArray(size_t capacity, Type element) noexcept { Reserve(capacity); std::fill(Begin(), End(), element); }
+	explicit DynamicArray(size_t capacity, Type element) noexcept { Reserve(capacity); std::fill(Begin(), Begin() + m_Capacity - 1, element); }
 
 	~DynamicArray() {
 		if (m_Size > 0)
@@ -92,7 +94,7 @@ public:
 	inline void Popback() {
 		if (m_Size == 0)
 			return;
-
+		std::vector<int> test;
 		Iterator Target = m_Iterator + (m_Size - 1);
 		//if (std::is_fundamental<Type>)
 		//	*Target = static_cast<Type>(0);
@@ -109,23 +111,26 @@ public:
 		return m_Iterator[index];
 	}
 
+	inline void Clear() {
+		delete[] m_Iterator;
+		m_Size = 0;
+	}
 
 
 	constexpr inline Iterator Erase(ConstantIterator iterator) {
 		if (m_Size == 0)
 			return nullptr;
 
-		if (iterator == End()) {
+		if (iterator == End() - 1) {
 			Popback();
 			return m_Iterator + (m_Size - 1);
 		}
 		else if (iterator == Begin()) {
-			m_Size--;
 			if (std::destructible<Type>)
 				iterator->~Type();
 
-			if (m_Size > 0)
-				std::shift_left(m_Iterator, End(), 1);
+			std::shift_left(m_Iterator, End(), 1);
+			m_Size--;
 			return m_Iterator;
 		}
 		else {
@@ -133,58 +138,76 @@ public:
 			if (Index == -1)
 				throw std::invalid_argument("Iterator out of bounds!");
 
-			//Into reusable func!
-			m_Size--;
 			if (std::destructible<Type>)
 				iterator->~Type();
 
-			std::shift_left(m_Iterator + Index, End(), 1);
-			return m_Iterator + Index;
+			std::shift_left(Begin() + Index, End(), 1);
+			m_Size--;
+			return Begin() + Index;
 		}
 	}
 	constexpr inline Iterator EraseIf(ConstantIterator iterator, Predicate predicate) {
 		if (m_Size == 0)
 			return nullptr;
+		if (predicate(*iterator))
+			Erase(iterator);
 
-		if (predicate(*iterator)) {
-			if (iterator == End()) {
-				Popback();
-				return m_Iterator + (m_Size - 1);
+		return nullptr;
+	}
+
+	constexpr inline Iterator Erase(ConstantIterator first, ConstantIterator last) {
+		if (m_Size == 0)
+			return nullptr;
+
+		if (first == last)
+			return nullptr; //??
+
+		int StartIndex = FindIndex(first);
+		if (StartIndex == INVALID_INDEX)
+			throw std::invalid_argument("Start iterator out of bounds!");
+
+		int EndIndex = FindIndex(last);
+		if (EndIndex == INVALID_INDEX)
+			throw std::invalid_argument("End interator out of bounds!");
+
+		if (StartIndex > EndIndex)
+			throw std::invalid_argument("Start iterator overlaps end interator!");
+
+		std::shift_left(Begin() + StartIndex, End(), (EndIndex + 1) - StartIndex);
+		m_Size -= (EndIndex + 1) - StartIndex;
+
+		return Begin() + StartIndex;
+	}
+	constexpr inline Iterator EraseIf(ConstantIterator first, ConstantIterator last, Predicate predicate) {
+		if (m_Size == 0)
+			return nullptr;
+
+		if (first == last)
+			return nullptr; //??
+
+		int StartIndex = FindIndex(first);
+		if (StartIndex == INVALID_INDEX)
+			throw std::invalid_argument("Start iterator out of bounds!");
+
+		int EndIndex = FindIndex(last);
+		if (EndIndex == INVALID_INDEX)
+			throw std::invalid_argument("End interator out of bounds!");
+
+		if (StartIndex > EndIndex)
+			throw std::invalid_argument("Start iterator overlaps end interator!");
+		
+		int Current = StartIndex;
+		for (int i = 0; i < (EndIndex + 1) - StartIndex; i++) {
+			if (predicate(*(m_Iterator + Current))) {
+				Erase(m_Iterator + Current);
+				continue;
 			}
-			else if (iterator == Begin()) {
-				m_Size--;
-				if (std::destructible<Type>)
-					iterator->~Type();
-
-				if (m_Size > 0)
-					std::shift_left(m_Iterator, End(), 1);
-				return m_Iterator;
-			}
-			else {
-				int Index = FindIndex(iterator);
-				if (Index == -1)
-					throw std::invalid_argument("Iterator out of bounds!");
-
-				//Into reusable func!
-				m_Size--;
-				if (std::destructible<Type>)
-					iterator->~Type();
-
-				std::shift_left(m_Iterator + Index, End(), 1);
-				return m_Iterator + Index;
-			}
+			Current++;
 		}
 
 		return nullptr;
 	}
-	constexpr inline Iterator Erase(ConstantIterator first, ConstantIterator last) {
 
-	}
-
-	inline void Clear() {
-		delete[] m_Iterator;
-		m_Size = 0;
-	}
 
 public:
 	inline Iterator Data() const noexcept { return m_Iterator; }
@@ -194,11 +217,11 @@ public:
 	inline Reference Front() const noexcept { return m_Iterator[0]; }
 	inline Reference Back() const noexcept { return m_Iterator[m_Size - 1]; }
 	inline Iterator Begin() const noexcept { return m_Iterator; }
-	inline Iterator End() const noexcept { return &m_Iterator[m_Capacity]; } //I NEED SOMETHING TO AFTER LAST AVAILABLE ELEMENT INSTEAD OF AFTER END!
+	inline Iterator End() const noexcept { return m_Iterator + m_Size; } //I NEED SOMETHING TO AFTER LAST AVAILABLE ELEMENT INSTEAD OF AFTER END!
 
-	inline constexpr size_t MaxSize() const noexcept { return static_cast<size_t>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
+	constexpr inline size_t MaxSize() const noexcept { return static_cast<size_t>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
 
-	inline void Reserve(size_t capacity) {
+	constexpr inline void Reserve(size_t capacity) {
 		if (m_Capacity > capacity)
 			return;
 		if (capacity > MaxSize())
@@ -218,7 +241,27 @@ public:
 		free(m_Iterator);
 		m_Iterator = NewBuffer;
 	}
+	constexpr inline void ShrinkToFit() {
+		if (m_Capacity == m_Size)
+			return;
 
+		//If size is 0
+		if (m_Size == 0 && m_Capacity > 0) {
+			delete m_Iterator;
+			m_Iterator = nullptr;
+			m_Capacity = 0;
+			return;
+		}
+
+		Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * m_Size));
+		if (!NewBuffer)
+			throw std::bad_alloc();
+
+		m_Capacity = m_Size;
+		std::memmove(NewBuffer, m_Iterator, m_Size * sizeof(Type));
+		free(m_Iterator);
+		m_Iterator = NewBuffer;
+	}
 
 
 	//Insert
@@ -234,14 +277,14 @@ private:
 			if (m_Iterator + i == iterator)
 				return i;
 		}
-		return -1;
+		return INVALID_INDEX;
 	}
 	inline int FindIndex(ConstantIterator iterator) const noexcept {
 		for (unsigned int i = 0; i < m_Size; i++) {
 			if (m_Iterator + i == iterator)
 				return i;
 		}
-		return -1;
+		return INVALID_INDEX;
 	}
 
 
@@ -251,4 +294,3 @@ private:
 	size_t m_Capacity = 0;
 };
 #endif // !DYNAMIC_ARRAY
-
