@@ -1,11 +1,17 @@
 #include <algorithm>
 #include <math.h>
 #include <functional>
+#include <memory>
 
 #ifndef DYNAMIC_ARRAY
 #define DYNAMIC_ARRAY
 
 constexpr auto INVALID_INDEX = -1;
+
+template<typename Type>
+class MyAllocator final : public std::allocator_traits<Type> {
+
+};
 
 template<typename T>
 class DynamicArray final {
@@ -87,8 +93,13 @@ public:
 		delete NewElement;
 		m_Size++;
 	}
-	void Emplaceback(const Reference element) {
 
+	template<class args>
+	constexpr Reference Emplaceback(args arguments) {
+		//std::vector<int> test;
+		//test.emplace_back()
+		//std::allocator_traits<>::construct(End(), std::forward<args>(arguments));
+		
 	}
 
 	inline void Popback() {
@@ -96,8 +107,6 @@ public:
 			return;
 		std::vector<int> test;
 		Iterator Target = m_Iterator + (m_Size - 1);
-		//if (std::is_fundamental<Type>)
-		//	*Target = static_cast<Type>(0);
 		if (std::destructible<Type>)
 			Target->~Type();
 
@@ -245,41 +254,52 @@ public:
 		if (m_Capacity == m_Size)
 			return;
 
-		//If size is 0
 		if (m_Size == 0 && m_Capacity > 0) {
 			delete m_Iterator;
 			m_Iterator = nullptr;
 			m_Capacity = 0;
 			return;
 		}
+		else {
+			Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * m_Size));
+			if (!NewBuffer)
+				throw std::bad_alloc();
 
-		Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * m_Size));
-		if (!NewBuffer)
-			throw std::bad_alloc();
-
-		m_Capacity = m_Size;
-		std::memmove(NewBuffer, m_Iterator, m_Size * sizeof(Type));
-		free(m_Iterator);
-		m_Iterator = NewBuffer;
+			m_Capacity = m_Size;
+			std::memmove(NewBuffer, m_Iterator, m_Size * sizeof(Type));
+			free(m_Iterator);
+			m_Iterator = NewBuffer;
+		}
 	}
+	constexpr inline void Swap(DynamicArray<Type>& other) noexcept {
+		size_t Capacity = this->m_Capacity;
+		this->m_Capacity = other.m_Capacity;
+		other.m_Capacity = Capacity;
 
+		size_t Size = this->m_Size;
+		this->m_Size = other.m_Size;
+		other.m_Size = Size;
+
+		Iterator Iterator = this->m_Iterator;
+		this->m_Iterator = other.m_Iterator;
+		other.m_Iterator = Iterator;
+	}
 
 	//Insert
 	//Swap (other vec?)`Make sure to test vecs of different template types
 	//Emplace
 	//Emplace back
-	//ShrinkToFit
 	//Resize
 
 private:
-	inline int FindIndex(Iterator iterator) const noexcept {
+	constexpr inline int FindIndex(Iterator iterator) const noexcept {
 		for (unsigned int i = 0; i < m_Size; i++) {
 			if (m_Iterator + i == iterator)
 				return i;
 		}
 		return INVALID_INDEX;
 	}
-	inline int FindIndex(ConstantIterator iterator) const noexcept {
+	constexpr inline int FindIndex(ConstantIterator iterator) const noexcept {
 		for (unsigned int i = 0; i < m_Size; i++) {
 			if (m_Iterator + i == iterator)
 				return i;
@@ -292,5 +312,6 @@ private:
 	Iterator m_Iterator = nullptr;
 	size_t m_Size = 0;
 	size_t m_Capacity = 0;
+	MyAllocator<Type> m_Allocator;
 };
 #endif // !DYNAMIC_ARRAY

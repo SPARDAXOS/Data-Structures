@@ -28,7 +28,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 
 
 		DynamicArray<int> Array;
-		DynamicArray<bool> Array2;
+		DynamicArray<int> Array2;
 		DynamicArray<Test> Array3;
 
 		//Array.Reserve(12);
@@ -50,14 +50,16 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		};
 
 
-		//Array.Erase(Array.Begin(), Array.Begin() + 2);
+		Array.Erase(Array.Begin() + 4);
 		Array.EraseIf(Array.Begin() + 1, Array.Begin() + 3, Predicate);
 		Array.ShrinkToFit();
-		//Fix the complication by the End() and test it everywhere including the ctor!
+
+		Array2.Swap(Array);
+		//Array.Emplaceback(1);
+
 		//Array.EraseIf(Array.Begin(), Predicate);
 		//Array.EraseIf(Array.End() - 1, Predicate);
 		//Array.EraseIf(Array.Begin() + 4, Predicate);
-
 
 		//Array.Erase(Array.Begin());
 		//Array.Erase(Array.End() - 1);
