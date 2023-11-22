@@ -25,8 +25,6 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 
 
 
-
-
 		DynamicArray<int> Array;
 		DynamicArray<int> Array2;
 		DynamicArray<Test> Array3;
@@ -55,7 +53,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		Array.ShrinkToFit();
 
 		Array2.Swap(Array);
-		//Array.Emplaceback(1);
+		Array.Emplaceback(1);
 
 		//Array.EraseIf(Array.Begin(), Predicate);
 		//Array.EraseIf(Array.End() - 1, Predicate);

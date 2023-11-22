@@ -2,16 +2,12 @@
 #include <math.h>
 #include <functional>
 #include <memory>
+#include <Allocator.h>
 
 #ifndef DYNAMIC_ARRAY
 #define DYNAMIC_ARRAY
 
 constexpr auto INVALID_INDEX = -1;
-
-template<typename Type>
-class MyAllocator final : public std::allocator_traits<Type> {
-
-};
 
 template<typename T>
 class DynamicArray final {
@@ -96,10 +92,22 @@ public:
 
 	template<class args>
 	constexpr Reference Emplaceback(args arguments) {
+		if (m_Capacity == 0)
+			Reserve(1);
+		else if (m_Size == m_Capacity)
+			Reserve(m_Capacity * 2);
+
 		//std::vector<int> test;
 		//test.emplace_back()
-		//std::allocator_traits<>::construct(End(), std::forward<args>(arguments));
-		
+		//std::allocator_traits<MyAllocator<Type>>::construct();
+		auto Allocation = std::allocator_traits<CustomAllocator>::allocate(m_Allocator, 1);
+		//auto allocation = m_Allocator.allocate(12);
+		//std::allocator_traits<CustomAllocator<Type>>::construct(m_Allocator, m_Iterator);
+
+		//std::cout << allocation << std::endl;
+		std::cout << arguments << std::endl;
+		return m_Iterator[0];
+		//return nullptr;
 	}
 
 	inline void Popback() {
@@ -312,6 +320,6 @@ private:
 	Iterator m_Iterator = nullptr;
 	size_t m_Size = 0;
 	size_t m_Capacity = 0;
-	MyAllocator<Type> m_Allocator;
+	CustomAllocator<Type> m_Allocator;
 };
 #endif // !DYNAMIC_ARRAY
