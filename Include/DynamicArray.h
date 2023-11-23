@@ -16,17 +16,18 @@ class DynamicArray final {
 	using Reference = T&;
 	using ConstantIterator = const T*;
 	using ConstantReference = const T&;
-	using Predicate = std::function<bool(const Type&)>;
+	using SizeType = std::size_t;
+	using Predicate = std::function<bool(const T&)>;
 
 public:
 	explicit DynamicArray() noexcept = default;
-	explicit DynamicArray(size_t capacity) noexcept { Reserve(capacity); }
-	explicit DynamicArray(size_t capacity, Type element) noexcept { Reserve(capacity); std::fill(Begin(), Begin() + m_Capacity - 1, element); }
+	explicit DynamicArray(SizeType capacity) noexcept { Reserve(capacity); }
+	explicit DynamicArray(SizeType capacity, Type element) noexcept { Reserve(capacity); std::fill(Begin(), Begin() + m_Capacity - 1, element); }
 
 	~DynamicArray() {
-		if (m_Size > 0)
-			delete[] m_Iterator;
-		std::cout << "dtor" << std::endl;
+		Clear();
+		m_Allocator.deallocate<Type>(m_Iterator, 0);
+		std::cout << "Array Dtor" << std::endl;
 	}
 
 	DynamicArray(const DynamicArray& other) {
@@ -90,30 +91,24 @@ public:
 		m_Size++;
 	}
 
-	template<class args>
-	constexpr Reference Emplaceback(args arguments) {
+	template<class... args>
+	constexpr Reference Emplaceback(args&&... arguments) {
+		using Allocator = std::allocator_traits<CustomAllocator<Type>>;
+
 		if (m_Capacity == 0)
 			Reserve(1);
 		else if (m_Size == m_Capacity)
 			Reserve(m_Capacity * 2);
 
-		//std::vector<int> test;
-		//test.emplace_back()
-		//std::allocator_traits<MyAllocator<Type>>::construct();
-		auto Allocation = std::allocator_traits<CustomAllocator>::allocate(m_Allocator, 1);
-		//auto allocation = m_Allocator.allocate(12);
-		//std::allocator_traits<CustomAllocator<Type>>::construct(m_Allocator, m_Iterator);
-
-		//std::cout << allocation << std::endl;
-		std::cout << arguments << std::endl;
-		return m_Iterator[0];
-		//return nullptr;
+		Allocator::construct(m_Allocator, m_Iterator + m_Size, arguments...);
+		m_Size++;
+		return Back();
 	}
 
 	inline void Popback() {
 		if (m_Size == 0)
 			return;
-		std::vector<int> test;
+
 		Iterator Target = m_Iterator + (m_Size - 1);
 		if (std::destructible<Type>)
 			Target->~Type();
@@ -129,7 +124,17 @@ public:
 	}
 
 	inline void Clear() {
-		delete[] m_Iterator;
+		if (m_Size == 0)
+			return;
+
+		if (std::destructible<Type>) {
+			for (unsigned int i = 0; i < m_Size; i++)
+				m_Iterator[i].~Type();
+		}
+
+		//Dtor
+		//Pushback and emplace copy/inplace difference
+
 		m_Size = 0;
 	}
 
@@ -156,7 +161,7 @@ public:
 				throw std::invalid_argument("Iterator out of bounds!");
 
 			if (std::destructible<Type>)
-				iterator->~Type();
+				iterator->~T();
 
 			std::shift_left(Begin() + Index, End(), 1);
 			m_Size--;
@@ -228,23 +233,24 @@ public:
 
 public:
 	inline Iterator Data() const noexcept { return m_Iterator; }
-	inline size_t Size() const noexcept { return m_Size; }
-	inline size_t Capacity() const noexcept { return m_Capacity; }
+	inline SizeType Size() const noexcept { return m_Size; }
+	inline SizeType Capacity() const noexcept { return m_Capacity; }
 	inline bool Empty() const noexcept { return m_Size > 0; }
 	inline Reference Front() const noexcept { return m_Iterator[0]; }
 	inline Reference Back() const noexcept { return m_Iterator[m_Size - 1]; }
 	inline Iterator Begin() const noexcept { return m_Iterator; }
 	inline Iterator End() const noexcept { return m_Iterator + m_Size; } //I NEED SOMETHING TO AFTER LAST AVAILABLE ELEMENT INSTEAD OF AFTER END!
 
-	constexpr inline size_t MaxSize() const noexcept { return static_cast<size_t>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
+	constexpr inline SizeType MaxSize() const noexcept { return static_cast<SizeType>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
 
-	constexpr inline void Reserve(size_t capacity) {
+	constexpr inline void Reserve(SizeType capacity) {
 		if (m_Capacity > capacity)
 			return;
 		if (capacity > MaxSize())
 			throw std::length_error("Max allowed container size exceeded!");
 
-		Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * capacity));
+		//Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * capacity));
+		Iterator NewBuffer = m_Allocator.allocate(sizeof(Type) * capacity);
 		if (!NewBuffer)
 			throw std::bad_alloc();
 
@@ -255,7 +261,8 @@ public:
 		}
 
 		std::memmove(NewBuffer, m_Iterator, m_Size * sizeof(Type));
-		free(m_Iterator);
+		//free(m_Iterator);
+		m_Allocator.deallocate<Type>(m_Iterator, 0);
 		m_Iterator = NewBuffer;
 	}
 	constexpr inline void ShrinkToFit() {
@@ -263,30 +270,33 @@ public:
 			return;
 
 		if (m_Size == 0 && m_Capacity > 0) {
-			delete m_Iterator;
+			//delete m_Iterator;
+			m_Allocator.deallocate<Type>(m_Iterator, 0);
 			m_Iterator = nullptr;
 			m_Capacity = 0;
 			return;
 		}
 		else {
-			Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * m_Size));
+			//Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * m_Size));
+			Iterator NewBuffer = m_Allocator.allocate<Type>(sizeof(Type) * m_Size);
 			if (!NewBuffer)
 				throw std::bad_alloc();
 
 			m_Capacity = m_Size;
 			std::memmove(NewBuffer, m_Iterator, m_Size * sizeof(Type));
-			free(m_Iterator);
+			//free(m_Iterator);
+			m_Allocator.deallocate<Type>(m_Iterator, 0);
 			m_Iterator = NewBuffer;
 		}
 	}
 	constexpr inline void Swap(DynamicArray<Type>& other) noexcept {
-		size_t Capacity = this->m_Capacity;
+		SizeType Capacity = this->m_Capacity;
 		this->m_Capacity = other.m_Capacity;
 		other.m_Capacity = Capacity;
 
-		size_t Size = this->m_Size;
+		SizeType SizeType = this->m_Size;
 		this->m_Size = other.m_Size;
-		other.m_Size = Size;
+		other.m_Size = SizeType;
 
 		Iterator Iterator = this->m_Iterator;
 		this->m_Iterator = other.m_Iterator;
@@ -318,8 +328,8 @@ private:
 
 private:
 	Iterator m_Iterator = nullptr;
-	size_t m_Size = 0;
-	size_t m_Capacity = 0;
+	SizeType m_Size = 0;
+	SizeType m_Capacity = 0;
 	CustomAllocator<Type> m_Allocator;
 };
 #endif // !DYNAMIC_ARRAY

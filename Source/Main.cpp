@@ -7,100 +7,69 @@
 class Test {
 public:
 	Test() {
-		std::cout << "ctor" << std::endl;
+		std::cout << "Default ctor" << std::endl;
+	}
+	Test(int arg) 
+		: number1(arg), number2(arg), number3(arg), number4(arg)
+	{
+		std::cout << "Custom ctor " << arg << std::endl;
+
 	}
 	~Test() {
-		std::cout << "dtor" << std::endl;
+		std::cout << "Dtor" << std::endl;
 	}
 
-	long long number1;
-	long long number2;
-	long long number3;
-	long long number4;
+	Test(const Test& other) {
+		*this = other;
+	}
+	Test& operator=(const Test& other) noexcept {
+		this->number1 = other.number1;
+		this->number2 = other.number2;
+		this->number3 = other.number3;
+		this->number4 = other.number4;
+
+		std::cout << "Copy" << std::endl;
+		return *this;
+	}
+
+	Test(Test&& other) noexcept {
+		*this = std::move(other);
+	}
+	Test& operator=(Test&& other) noexcept {
+
+		this->number1 = other.number1;
+		this->number2 = other.number2;
+		this->number3 = other.number3;
+		this->number4 = other.number4;
+
+		other.number1 = 0;
+		other.number2 = 0;
+		other.number3 = 0;
+		other.number4 = 0;
+
+		std::cout << "Move" << std::endl;
+		return *this;
+	}
+
+public:
+	int number1 = 1;
+	int number2 = 2;
+	int number3 = 3;
+	int number4 = 4;
 };
 int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
-
-		//DynamicArray<int> Array(12, 8);
-
-
-
 		DynamicArray<int> Array;
-		DynamicArray<int> Array2;
-		DynamicArray<Test> Array3;
 
-		//Array.Reserve(12);
-		Array.Pushback(1); //Begin
-		Array.Pushback(2);
-		Array.Pushback(3);
+		//Array.Emplaceback(1);
+		//Array.Emplaceback(2);
+		//Array.Emplaceback(3);
+		//Array.Emplaceback(4);
+
 		Array.Pushback(4);
-		Array.Pushback(5); //Begin + 4
-		Array.Pushback(6);
-		Array.Pushback(7);
-		Array.Pushback(8);
-		Array.Pushback(9);
-		Array.Pushback(10); //End
-		std::function<bool(const int&)> Predicate = [](const int& element) { 
-			std::cout << element << std::endl; 
-			if (element == 3)
-				return false;
-			return true;
-		};
-
-
-		Array.Erase(Array.Begin() + 4);
-		Array.EraseIf(Array.Begin() + 1, Array.Begin() + 3, Predicate);
-		Array.ShrinkToFit();
-
-		Array2.Swap(Array);
+		Array.Emplaceback(3);
+		Array.Pushback(2);
 		Array.Emplaceback(1);
-
-		//Array.EraseIf(Array.Begin(), Predicate);
-		//Array.EraseIf(Array.End() - 1, Predicate);
-		//Array.EraseIf(Array.Begin() + 4, Predicate);
-
-		//Array.Erase(Array.Begin());
-		//Array.Erase(Array.End() - 1);
-		//Array.Erase(Array.Begin() + 2);
-
-		Test MyStruct;
-		Array3.Pushback(MyStruct);
-		Array3.Pushback({});
-		Array3.Popback();
-		Array3.Popback();
-		
-	
-
-		//Array.Pushback(2);
-		//Array.Pushback(3);
-		//Array.Pushback(4);
-		//Array.Pushback(5);
-		//Array.Pushback(6);
-		//Array.Pushback(7);
-
-		Array.Popback();
-		Array.Popback();
-		Array.Popback();
-		Array.Popback();
-		Array.Popback();
-		Array.Popback();
-		Array.Popback();
-		Array.Popback();
-
-		//DynamicArray<int> Array2 = std::move(Array);
-		//Array2.Pushback(8);
-		//Array2.Pushback(9);
-		//Array2.Pushback(10);
-		//Array2.Pushback(11);
-		//Array2.Pushback(12);
-		//Array2.Pushback(13);
-		//Array2.Pushback(14);
-
-		//Array = Array2;
-		std::cout << Array.Front() << std::endl;
-		std::cout << Array.Back() << std::endl;
-		//std::cout << Array.At(1) << std::endl;
-
 	}
 	catch (const std::exception& exception) {
 		std::cerr << exception.what() << std::endl;
