@@ -74,6 +74,8 @@ public:
 
 public:
 	void Pushback(ConstantReference element) {
+		using Allocator = std::allocator_traits<CustomAllocator<Type>>;
+
 		if (m_Capacity == 0)
 			Reserve(1);
 		else if (m_Size == m_Capacity)
@@ -82,12 +84,13 @@ public:
 		if (!std::copy_constructible<Type>)
 			throw std::invalid_argument("Type needs to be copy contructable!");
 
-		Iterator NewElement = new Type(element);
-		if (!NewElement)
-			throw std::bad_alloc();
+		//Iterator NewElement = new Type(element);
+		Allocator::construct(m_Allocator, m_Iterator + m_Size, element);
+		//if (!NewElement)
+			//throw std::bad_alloc();
 
-		std::memmove(&m_Iterator[m_Size], NewElement, sizeof(Type));
-		delete NewElement;
+		//std::memmove(&m_Iterator[m_Size], NewElement, sizeof(Type));
+		//delete NewElement;
 		m_Size++;
 	}
 

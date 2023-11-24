@@ -34,7 +34,7 @@ public:
 
 		m_Allocations++;
 		m_AllocatedMemory += sizeof(value_type);
-		std::cout << "Allocation was made with size " << sizeof(value_type) << std::endl;
+		std::cout << "Allocation (construct) was made with size " << sizeof(value_type) << std::endl;
 	}
 
 
@@ -46,7 +46,7 @@ public:
 		m_AllocatedMemory += size;
 		pointer AllocatedMemory = static_cast<pointer>(malloc(size));
 
-		std::cout << "Allocation was made with size " << size << std::endl;
+		std::cout << "Allocation (allocate) was made with size " << size << std::endl;
 		return AllocatedMemory;
 	}
 	template<typename T>
@@ -55,8 +55,8 @@ public:
 			return;
 
 		m_Allocations--;
-		m_AllocatedMemory -= sizeof(T);
-		// size?
+		m_AllocatedMemory -= sizeof(T);		// size?
+		m_Deallocations++;
 		free(address);
 
 		std::cout << "Deallocation was made with size " << size << std::endl;
@@ -64,6 +64,7 @@ public:
 
 private:
 	size_type m_Allocations = 0;
+	size_type m_Deallocations = 0;
 	size_type m_AllocatedMemory = 0;
 };
 
