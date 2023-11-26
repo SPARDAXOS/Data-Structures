@@ -59,7 +59,7 @@ public:
 };
 int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
-		DynamicArray<int> Array;
+		DynamicArray<Test> Array;
 
 		//Array.Emplaceback(1);
 		//Array.Emplaceback(2);
