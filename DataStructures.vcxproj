@@ -140,6 +140,7 @@
   <ItemGroup>
     <ClInclude Include="Include\Allocator.h" />
     <ClInclude Include="Include\DynamicArray.h" />
+    <ClInclude Include="Include\Profiler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

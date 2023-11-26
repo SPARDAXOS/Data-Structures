@@ -26,7 +26,7 @@ public:
 
 	~DynamicArray() {
 		Clear();
-		m_Allocator.deallocate<Type>(m_Iterator, 0);
+		m_Allocator.deallocate<Type>(m_Iterator, m_Capacity * sizeof(Type));
 		std::cout << "Array Dtor" << std::endl;
 	}
 
@@ -264,8 +264,7 @@ public:
 		}
 
 		std::memmove(NewBuffer, m_Iterator, m_Size * sizeof(Type));
-		//free(m_Iterator);
-		m_Allocator.deallocate<Type>(m_Iterator, 0);
+		m_Allocator.deallocate<Type>(m_Iterator, (m_Capacity / 2) * sizeof(Type));
 		m_Iterator = NewBuffer;
 	}
 	constexpr inline void ShrinkToFit() {
@@ -273,22 +272,20 @@ public:
 			return;
 
 		if (m_Size == 0 && m_Capacity > 0) {
-			//delete m_Iterator;
-			m_Allocator.deallocate<Type>(m_Iterator, 0);
+			m_Allocator.deallocate<Type>(m_Iterator, m_Capacity * sizeof(Type));
 			m_Iterator = nullptr;
 			m_Capacity = 0;
 			return;
 		}
 		else {
-			//Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * m_Size));
 			Iterator NewBuffer = m_Allocator.allocate<Type>(sizeof(Type) * m_Size);
 			if (!NewBuffer)
 				throw std::bad_alloc();
 
+			SizeType DeallocationSize = m_Capacity * sizeof(Type);
 			m_Capacity = m_Size;
 			std::memmove(NewBuffer, m_Iterator, m_Size * sizeof(Type));
-			//free(m_Iterator);
-			m_Allocator.deallocate<Type>(m_Iterator, 0);
+			m_Allocator.deallocate<Type>(m_Iterator, DeallocationSize);
 			m_Iterator = NewBuffer;
 		}
 	}
