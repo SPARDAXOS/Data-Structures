@@ -40,6 +40,8 @@ public:
 			if (this->m_Size > 0)
 				Clear();
 
+			this->m_Allocator = std::allocator_traits<CustomAllocator<Type>>::select_on_container_copy_construction(other.m_Allocator);
+
 			Reserve(other.m_Capacity);
 			std::memmove(this->m_Iterator, other.m_Iterator, other.m_Size * sizeof(Type));
 			this->m_Size = other.m_Size;
@@ -55,16 +57,39 @@ public:
 		if (this->m_Iterator == other.m_Iterator)
 			return *this;
 		else {
-			if (this->m_Size > 0)
+			if (this->m_Size > 0) //Deallocate memory using own allocator
 				Clear();
 
-			this->m_Iterator = other.m_Iterator;
-			this->m_Size     = other.m_Size;
-			this->m_Capacity = other.m_Capacity;
+			if constexpr (std::allocator_traits<CustomAllocator<Type>>::propogate_on_container_move_assignment) {
+				this->m_Allocator = std::move(other.m_Allocator); //Move assign from rhs allocator
 
-			other.m_Iterator = nullptr;
-			other.m_Size	 = 0;
-			other.m_Capacity = 0;
+				//Memory ownership + stuff
+				this->m_Iterator = other.m_Iterator;
+				this->m_Size = other.m_Size;
+				this->m_Capacity = other.m_Capacity;
+
+				other.m_Iterator = nullptr;
+				other.m_Size = 0;
+				other.m_Capacity = 0;
+			}
+			else if (!std::allocator_traits<CustomAllocator<Type>>::propogate_on_container_move_assignment && this->m_Allocator == other.m_Allocator) {
+				//Move assignment is skipped for allocators
+				 
+				//Memory ownership + stuff
+				this->m_Iterator = other.m_Iterator;
+				this->m_Size = other.m_Size;
+				this->m_Capacity = other.m_Capacity;
+
+				other.m_Iterator = nullptr;
+				other.m_Size = 0;
+				other.m_Capacity = 0;
+			}
+			else if (!std::allocator_traits<CustomAllocator<Type>>::propogate_on_container_move_assignment && this->m_Allocator != other.m_Allocator) {
+				Assign(std::make_move_iterator(other.Begin()), std::make_move_iterator(other.End()));
+			}
+
+
+
 
 			return *this;
 		}
@@ -252,7 +277,6 @@ public:
 		if (capacity > MaxSize())
 			throw std::length_error("Max allowed container size exceeded!");
 
-		//Iterator NewBuffer = static_cast<Iterator>(malloc(sizeof(Type) * capacity));
 		Iterator NewBuffer = m_Allocator.allocate(sizeof(Type) * capacity);
 		if (!NewBuffer)
 			throw std::bad_alloc();
@@ -293,20 +317,47 @@ public:
 		SizeType Capacity = this->m_Capacity;
 		this->m_Capacity = other.m_Capacity;
 		other.m_Capacity = Capacity;
-
+		
 		SizeType SizeType = this->m_Size;
 		this->m_Size = other.m_Size;
 		other.m_Size = SizeType;
-
+		
 		Iterator Iterator = this->m_Iterator;
 		this->m_Iterator = other.m_Iterator;
 		other.m_Iterator = Iterator;
+
+		//std::swap(*this, other);
 	}
 
+	constexpr void Assign(SizeType count, const Reference value) {
+		if (m_Size > 0)
+			Clear();
+
+		for (SizeType i = 0; i < count; i++)
+			Emplaceback(value);
+	}
+	template<class InputIt>
+	constexpr void Assign(InputIt first, InputIt last) {
+		if (m_Size > 0)
+			Clear();
+
+		auto Current = first;
+		while (Current != last + 1) {
+			Emplaceback(*Current);
+			Current++;
+		}
+	}
+	constexpr void Assign(std::initializer_list<Type> list) {
+		if (m_Size > 0)
+			Clear();
+
+		for (SizeType i = 0; i < list.size(); i++)
+			Emplaceback(list.begin() + i);
+	}
+
+
 	//Insert
-	//Swap (other vec?)`Make sure to test vecs of different template types
 	//Emplace
-	//Emplace back
 	//Resize
 
 private:

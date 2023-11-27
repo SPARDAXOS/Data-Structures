@@ -61,6 +61,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
 		DynamicArray<Test> Array;
 
+
 		//Array.Emplaceback(1);
 		//Array.Emplaceback(2);
 		//Array.Emplaceback(3);
@@ -70,6 +71,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		Array.Emplaceback(3);
 		Array.Pushback(2);
 		Array.Emplaceback(1);
+		DynamicArray<Test> Array2 = Array;
+		//Array2.Swap(Array);
 	}
 	catch (const std::exception& exception) {
 		std::cerr << exception.what() << std::endl;
