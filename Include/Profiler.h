@@ -48,9 +48,12 @@ public:
 
 public:
 	inline bool StartProfile(std::string_view id) {
-		//Check if it already exists!
-		m_ProfillingUnits.Emplaceback(id, m_Clock.now());
+		if (FindUnit(id).has_value()) {
+			std::cout << "Profile unit with id " << id << " already exists!" << std::endl;
+			return false;
+		}
 
+		m_ProfillingUnits.Emplaceback(id, m_Clock.now());
 		return true;
 	}
 	[[nodiscard]] inline std::optional<ProfilingUnit> EndProfile(std::string_view id) {
@@ -62,14 +65,13 @@ public:
 
 		TargetUnit->m_EndTimepoint = m_Clock.now();
 		TargetUnit->m_Duration = TargetUnit->m_EndTimepoint - TargetUnit->m_StartingTimepoint;
-
+		//Remove unit
 		return TargetUnit;
 	}
 
 
 private:
 	inline std::optional<ProfilingUnit> FindUnit(std::string_view id) const noexcept {
-
 		for (auto& unit : m_ProfillingUnits) {
 			if (unit.m_ID == id)
 				return std::optional<ProfilingUnit>(unit);
@@ -77,7 +79,6 @@ private:
 
 		return std::optional<ProfilingUnit>(std::nullopt);
 	}
-	//Find Unit
 	
 
 private:
@@ -85,7 +86,4 @@ private:
 	Container<ProfilingUnit> m_ProfillingUnits;
 	uint32 m_RunningProfiles = 0;
 };
-
-
-
 #endif // !PROFILER

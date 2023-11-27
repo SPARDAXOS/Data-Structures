@@ -12,11 +12,13 @@ static auto ALLOCATOR_ID = 0;
 template<typename T>
 class Container final {
 	using Type = T;
-	using Iterator = T*;
-	using Reference = T&;
-	using ConstantIterator = const T*;
-	using ConstantReference = const T&;
 	using SizeType = std::size_t;
+	using Iterator = T*;
+	using ConstantIterator = const T*;
+	using ReverseIterator = std::reverse_iterator<Container<Type>::Iterator>();
+	using ReverseConstantIterator = const std::reverse_iterator<Container<Type>::Iterator>();
+	using Reference = T&;
+	using ConstantReference = const T&;
 	using Predicate = std::function<bool(const T&)>;
 
 public:
@@ -136,7 +138,7 @@ public:
 
 		if (!std::copy_constructible<Type>)
 			throw std::invalid_argument("Type needs to be copy contructable!");
-
+		//Allocate bytes then contruct in place 
 		Allocator::construct(m_Allocator, m_Iterator + m_Size, element);
 		m_Size++;
 	}
@@ -149,7 +151,7 @@ public:
 			reserve(1);
 		else if (m_Size == m_Capacity)
 			reserve(m_Capacity * 2);
-
+		//Allocate bytes then contruct in place 
 		Allocator::construct(m_Allocator, m_Iterator + m_Size, arguments...);
 		m_Size++;
 		return back();
@@ -159,9 +161,11 @@ public:
 		if (m_Size == 0)
 			return;
 
-		Iterator Target = m_Iterator + (m_Size - 1);
+		//Iterator Target = m_Iterator + (m_Size - 1);
 		if (std::destructible<Type>)
-			Target->~Type();
+			std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, m_Iterator + (m_Size - 1));
+		//if (std::destructible<Type>)
+		//	Target->~Type();
 
 		m_Size--;
 	}
@@ -177,9 +181,10 @@ public:
 		if (m_Size == 0)
 			return;
 
+
 		if (std::destructible<Type>) {
 			for (unsigned int i = 0; i < m_Size; i++)
-				m_Iterator[i].~Type();
+				std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, m_Iterator + i);
 		}
 
 		//Dtor
@@ -199,7 +204,7 @@ public:
 		}
 		else if (iterator == begin()) {
 			if (std::destructible<Type>)
-				iterator->~Type();
+				std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, iterator);
 
 			std::shift_left(m_Iterator, end(), 1);
 			m_Size--;
@@ -211,7 +216,7 @@ public:
 				throw std::invalid_argument("Iterator out of bounds!");
 
 			if (std::destructible<Type>)
-				iterator->~T();
+				std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, iterator);
 
 			std::shift_left(begin() + Index, end(), 1);
 			m_Size--;
@@ -244,6 +249,14 @@ public:
 
 		if (StartIndex > EndIndex)
 			throw std::invalid_argument("Start iterator overlaps end interator!");
+
+		//				std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, iterator);   ????????????
+		//This needs to iterate and call dtor on elements otherwise its borken
+		//Foreach from start indx to end inx, call destroy 
+
+		//Test this!!!!!!!!!!!!!!
+		for (int i = StartIndex; i < EndIndex + 1; i++)
+			std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, m_Iterator + StartIndex);
 
 		std::shift_left(begin() + StartIndex, end(), (EndIndex + 1) - StartIndex);
 		m_Size -= (EndIndex + 1) - StartIndex;
@@ -285,13 +298,25 @@ public:
 	inline Iterator data() const noexcept { return m_Iterator; }
 	inline SizeType size() const noexcept { return m_Size; }
 	inline SizeType capacity() const noexcept { return m_Capacity; }
-	inline bool empty() const noexcept { return m_Size > 0; }
+	constexpr inline bool empty() const noexcept { return m_Size > 0; }
 	inline Reference front() const noexcept { return m_Iterator[0]; }
 	inline Reference back() const noexcept { return m_Iterator[m_Size - 1]; }
-	inline Iterator begin() const noexcept { return m_Iterator; }
-	inline Iterator end() const noexcept { return m_Iterator + m_Size; }
 
-	inline constexpr CustomAllocator<Type> get_allocator() const noexcept { return m_Allocator; }
+	constexpr inline Iterator begin() noexcept { return m_Iterator; }
+	constexpr inline ConstantIterator begin() const noexcept { return m_Iterator; }
+	constexpr inline ConstantIterator cbegin() const noexcept { return m_Iterator; }
+
+	constexpr inline ReverseIterator rbegin() noexcept { return ReverseIterator(m_Iterator + (m_Size - 1)); }
+	constexpr inline ReverseConstantIterator rbegin() const noexcept { return ReverseIterator(m_Iterator + (m_Size - 1)); }
+	constexpr inline ReverseConstantIterator crbegin() const noexcept { return ReverseIterator(m_Iterator + (m_Size - 1)); }
+
+	constexpr inline Iterator end() noexcept { return m_Iterator + m_Size; }
+	constexpr inline ConstantIterator end() const noexcept { return m_Iterator + m_Size; }
+	constexpr inline ConstantIterator cend() const noexcept { return m_Iterator + m_Size; }
+
+	//Reverese ite
+
+	constexpr inline CustomAllocator<Type> get_allocator() const noexcept { return m_Allocator; }
 
 	constexpr inline SizeType maxSize() const noexcept { return static_cast<SizeType>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
 
