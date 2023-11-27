@@ -6,11 +6,8 @@
 #ifndef PROFILER
 #define PROFILER
 
+namespace {
 
-
-
-class Profiler final {
-public:
 	using Timepoint = std::chrono::high_resolution_clock::time_point;
 	using Duration = std::chrono::high_resolution_clock::duration;
 	using Microseconds = std::chrono::microseconds;
@@ -19,32 +16,43 @@ public:
 	using Minutes = std::chrono::minutes;
 	using Hours = std::chrono::hours;
 
+}
+
+class ProfilingUnit final {
 public:
-	class ProfilingUnit final {
-	public:
-		explicit ProfilingUnit() noexcept = default;
-		ProfilingUnit(std::string_view id, Timepoint start)
-			: m_ID(id), m_StartingTimepoint(start)
-		{
-		}
-		ProfilingUnit(std::string_view id, Timepoint start, Timepoint end, Duration duration)
-			: m_ID(id), m_StartingTimepoint(start), m_EndTimepoint(end), m_Duration(duration)
-		{
-		}
+	explicit ProfilingUnit() noexcept = default;
+	ProfilingUnit(std::string_view id, Timepoint start)
+		: m_ID(id), m_StartingTimepoint(start)
+	{
+	}
+	ProfilingUnit(std::string_view id, Timepoint start, Timepoint end, Duration duration)
+		: m_ID(id), m_StartingTimepoint(start), m_EndTimepoint(end), m_Duration(duration)
+	{
+	}
 
-	public:
-		inline Microseconds AsMicroseconds() const noexcept { return std::chrono::duration_cast<Microseconds>(m_Duration); }
-		inline Milliseconds AsMilliseconds() const noexcept { return std::chrono::duration_cast<Milliseconds>(m_Duration); }
-		inline Seconds AsSeconds() const noexcept { return std::chrono::duration_cast<Seconds>(m_Duration); }
+public:
+	inline Microseconds AsMicroseconds() const noexcept { return std::chrono::duration_cast<Microseconds>(m_Duration); }
+	inline Milliseconds AsMilliseconds() const noexcept { return std::chrono::duration_cast<Milliseconds>(m_Duration); }
+	inline Seconds AsSeconds() const noexcept { return std::chrono::duration_cast<Seconds>(m_Duration); }
 
-	public:
-		std::string_view m_ID;
-		Timepoint m_StartingTimepoint;
-		Timepoint m_EndTimepoint;
-		Duration m_Duration;
-	};
-	
+public:
+	std::string_view m_ID;
+	Timepoint m_StartingTimepoint;
+	Timepoint m_EndTimepoint;
+	Duration m_Duration;
+};
 
+
+class Profiler final {
+public:
+	explicit Profiler() noexcept = default;
+	~Profiler() noexcept = default;
+
+	Profiler(const Profiler& other) = default;
+	Profiler& operator=(const Profiler& other) = default;
+
+	Profiler(Profiler&& other) noexcept = default;
+	Profiler& operator=(Profiler&& other) noexcept = default;
 
 public:
 	inline bool StartProfile(std::string_view id) {
@@ -54,6 +62,7 @@ public:
 		}
 
 		m_ProfillingUnits.Emplaceback(id, m_Clock.now());
+		m_RunningProfiles++;
 		return true;
 	}
 	[[nodiscard]] inline std::optional<ProfilingUnit> EndProfile(std::string_view id) {
@@ -65,7 +74,9 @@ public:
 
 		TargetUnit->m_EndTimepoint = m_Clock.now();
 		TargetUnit->m_Duration = TargetUnit->m_EndTimepoint - TargetUnit->m_StartingTimepoint;
-		//Remove unit
+
+		//m_ProfillingUnits.Erase(std::addressof(TargetUnit.value())); //UB    !!!!
+		m_RunningProfiles--;
 		return TargetUnit;
 	}
 
