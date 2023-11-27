@@ -13,9 +13,19 @@ public:
 	using const_pointer = const _Alloc*;
 	using const_reference = const _Alloc&;
 
+	using propagate_on_container_move_assignment = std::true_type;
+	using propagate_on_container_copy_assignment = std::true_type;
+	using propagate_on_container_swap			 = std::true_type;
+	//using is_always_equal						 = std::true_type; //C++17 for non-empty allocators that are always equal
+
 public:
-	CustomAllocator() noexcept {
+	CustomAllocator() noexcept = delete;/*  {
 		std::cout << "My allocator ctor ctor was called" << std::endl;
+	}*/
+
+	CustomAllocator(int id) noexcept 
+		: m_ID(id)
+	{
 	}
 	~CustomAllocator() {
 		if (m_AllocatedMemory > 0)
@@ -55,7 +65,7 @@ public:
 			return;
 
 		m_Allocations--;
-		m_AllocatedMemory -= sizeof(T);		// size?
+		m_AllocatedMemory -= size * sizeof(T);
 		m_Deallocations++;
 		free(address);
 
@@ -63,6 +73,7 @@ public:
 	}
 
 private:
+	int m_ID;
 	size_type m_Allocations = 0;
 	size_type m_Deallocations = 0;
 	size_type m_AllocatedMemory = 0;

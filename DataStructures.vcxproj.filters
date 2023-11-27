@@ -20,13 +20,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Include\DynamicArray.h">
+    <ClInclude Include="Include\Container.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\Allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\Profiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Utility.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

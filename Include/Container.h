@@ -1,16 +1,16 @@
+#include <Allocator.h>
 #include <algorithm>
 #include <math.h>
 #include <functional>
-#include <memory>
-#include <Allocator.h>
 
-#ifndef DYNAMIC_ARRAY
-#define DYNAMIC_ARRAY
+#ifndef CONTAINER
+#define CONTAINER
 
 constexpr auto INVALID_INDEX = -1;
+static auto ALLOCATOR_ID = 0;
 
 template<typename T>
-class DynamicArray final {
+class Container final {
 	using Type = T;
 	using Iterator = T*;
 	using Reference = T&;
@@ -20,47 +20,75 @@ class DynamicArray final {
 	using Predicate = std::function<bool(const T&)>;
 
 public:
-	explicit DynamicArray() noexcept = default;
-	explicit DynamicArray(SizeType capacity) noexcept { Reserve(capacity); }
-	explicit DynamicArray(SizeType capacity, Type element) noexcept { Reserve(capacity); std::fill(Begin(), Begin() + m_Capacity - 1, element); }
+	explicit Container() noexcept 
+		:	m_Allocator(ALLOCATOR_ID)
+	{
+		ALLOCATOR_ID++;
+	};
+	explicit Container(SizeType capacity) noexcept { reserve(capacity); }
+	explicit Container(SizeType capacity, Type element) noexcept { reserve(capacity); std::fill(begin(), begin() + m_Capacity - 1, element); }
 
-	~DynamicArray() {
+	~Container() {
 		Clear();
-		m_Allocator.deallocate<Type>(m_Iterator, m_Capacity * sizeof(Type));
+		m_Allocator.deallocate<Type>(m_Iterator, m_Capacity);
 		std::cout << "Array Dtor" << std::endl;
 	}
 
-	DynamicArray(const DynamicArray& other) {
-		*this = other;
+	Container(const Container& other) {
+		//*this = other;
+		//New allocator by traits func then uses it to allocate resources
+
+		this->m_Allocator = std::allocator_traits<CustomAllocator<Type>>::select_on_container_copy_construction(other.m_Allocator);
+		Assign(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
 	}
-	DynamicArray& operator=(const DynamicArray& other) noexcept {
+	Container& operator=(const Container& other) noexcept {
 		if (this->m_Iterator == other.m_Iterator)
 			return *this;
 		else {
-			if (this->m_Size > 0)
-				Clear();
 
-			this->m_Allocator = std::allocator_traits<CustomAllocator<Type>>::select_on_container_copy_construction(other.m_Allocator);
+			//Copy assing the allocator if the container move assignment is falde
+			if (std::allocator_traits<CustomAllocator<Type>>::propagate_on_container_copy_assignment::value) {
+				if (*this != other)
+					Clear();
 
-			Reserve(other.m_Capacity);
-			std::memmove(this->m_Iterator, other.m_Iterator, other.m_Size * sizeof(Type));
-			this->m_Size = other.m_Size;
+				this->m_Allocator = other->m_Allocator;
+			}
+
+			Assign(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
+
+
+			//this->m_Allocator = std::allocator_traits<CustomAllocator<Type>>::select_on_container_copy_construction(other.m_Allocator);
+			//
+			//reserve(other.m_Capacity);
+			//std::memmove(this->m_Iterator, other.m_Iterator, other.m_Size * sizeof(Type));
+			//this->m_Size = other.m_Size;
 
 			return *this;
 		}
 	}
 
-	DynamicArray(DynamicArray&& other) noexcept {
-		*this = std::move(other);
+	Container(Container&& other) noexcept {
+		//Move constructs the allocator and steals resources
+		m_Allocator = std::move(other.m_Allocator);
+
+		this->m_Iterator = other.m_Iterator;
+		this->m_Size = other.m_Size;
+		this->m_Capacity = other.m_Capacity;
+
+		other.m_Iterator = nullptr;
+		other.m_Size = 0;
+		other.m_Capacity = 0;
+
+
+		//*this = std::move(other);
 	}
-	DynamicArray& operator=(DynamicArray&& other) noexcept {
+	Container& operator=(Container&& other) noexcept {
 		if (this->m_Iterator == other.m_Iterator)
 			return *this;
 		else {
-			if (this->m_Size > 0) //Deallocate memory using own allocator
-				Clear();
+			Clear();//Deallocate memory using own allocator
 
-			if constexpr (std::allocator_traits<CustomAllocator<Type>>::propogate_on_container_move_assignment) {
+			if constexpr (std::allocator_traits<CustomAllocator<Type>>::propagate_on_container_move_assignment::value) {
 				this->m_Allocator = std::move(other.m_Allocator); //Move assign from rhs allocator
 
 				//Memory ownership + stuff
@@ -72,7 +100,7 @@ public:
 				other.m_Size = 0;
 				other.m_Capacity = 0;
 			}
-			else if (!std::allocator_traits<CustomAllocator<Type>>::propogate_on_container_move_assignment && this->m_Allocator == other.m_Allocator) {
+			else if (!std::allocator_traits<CustomAllocator<Type>>::propagate_on_container_move_assignment::value && this->m_Allocator == other.m_Allocator) {
 				//Move assignment is skipped for allocators
 				 
 				//Memory ownership + stuff
@@ -84,8 +112,8 @@ public:
 				other.m_Size = 0;
 				other.m_Capacity = 0;
 			}
-			else if (!std::allocator_traits<CustomAllocator<Type>>::propogate_on_container_move_assignment && this->m_Allocator != other.m_Allocator) {
-				Assign(std::make_move_iterator(other.Begin()), std::make_move_iterator(other.End()));
+			else if (!std::allocator_traits<CustomAllocator<Type>>::propagate_on_container_move_assignment::value && this->m_Allocator != other.m_Allocator) {
+				Assign(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
 			}
 
 
@@ -102,20 +130,14 @@ public:
 		using Allocator = std::allocator_traits<CustomAllocator<Type>>;
 
 		if (m_Capacity == 0)
-			Reserve(1);
+			reserve(1);
 		else if (m_Size == m_Capacity)
-			Reserve(m_Capacity * 2);
+			reserve(m_Capacity * 2);
 
 		if (!std::copy_constructible<Type>)
 			throw std::invalid_argument("Type needs to be copy contructable!");
 
-		//Iterator NewElement = new Type(element);
 		Allocator::construct(m_Allocator, m_Iterator + m_Size, element);
-		//if (!NewElement)
-			//throw std::bad_alloc();
-
-		//std::memmove(&m_Iterator[m_Size], NewElement, sizeof(Type));
-		//delete NewElement;
 		m_Size++;
 	}
 
@@ -124,13 +146,13 @@ public:
 		using Allocator = std::allocator_traits<CustomAllocator<Type>>;
 
 		if (m_Capacity == 0)
-			Reserve(1);
+			reserve(1);
 		else if (m_Size == m_Capacity)
-			Reserve(m_Capacity * 2);
+			reserve(m_Capacity * 2);
 
 		Allocator::construct(m_Allocator, m_Iterator + m_Size, arguments...);
 		m_Size++;
-		return Back();
+		return back();
 	}
 
 	inline void Popback() {
@@ -171,15 +193,15 @@ public:
 		if (m_Size == 0)
 			return nullptr;
 
-		if (iterator == End() - 1) {
+		if (iterator == end() - 1) {
 			Popback();
 			return m_Iterator + (m_Size - 1);
 		}
-		else if (iterator == Begin()) {
+		else if (iterator == begin()) {
 			if (std::destructible<Type>)
 				iterator->~Type();
 
-			std::shift_left(m_Iterator, End(), 1);
+			std::shift_left(m_Iterator, end(), 1);
 			m_Size--;
 			return m_Iterator;
 		}
@@ -191,9 +213,9 @@ public:
 			if (std::destructible<Type>)
 				iterator->~T();
 
-			std::shift_left(Begin() + Index, End(), 1);
+			std::shift_left(begin() + Index, end(), 1);
 			m_Size--;
-			return Begin() + Index;
+			return begin() + Index;
 		}
 	}
 	constexpr inline Iterator EraseIf(ConstantIterator iterator, Predicate predicate) {
@@ -223,10 +245,10 @@ public:
 		if (StartIndex > EndIndex)
 			throw std::invalid_argument("Start iterator overlaps end interator!");
 
-		std::shift_left(Begin() + StartIndex, End(), (EndIndex + 1) - StartIndex);
+		std::shift_left(begin() + StartIndex, end(), (EndIndex + 1) - StartIndex);
 		m_Size -= (EndIndex + 1) - StartIndex;
 
-		return Begin() + StartIndex;
+		return begin() + StartIndex;
 	}
 	constexpr inline Iterator EraseIf(ConstantIterator first, ConstantIterator last, Predicate predicate) {
 		if (m_Size == 0)
@@ -260,21 +282,23 @@ public:
 
 
 public:
-	inline Iterator Data() const noexcept { return m_Iterator; }
-	inline SizeType Size() const noexcept { return m_Size; }
-	inline SizeType Capacity() const noexcept { return m_Capacity; }
-	inline bool Empty() const noexcept { return m_Size > 0; }
-	inline Reference Front() const noexcept { return m_Iterator[0]; }
-	inline Reference Back() const noexcept { return m_Iterator[m_Size - 1]; }
-	inline Iterator Begin() const noexcept { return m_Iterator; }
-	inline Iterator End() const noexcept { return m_Iterator + m_Size; } //I NEED SOMETHING TO AFTER LAST AVAILABLE ELEMENT INSTEAD OF AFTER END!
+	inline Iterator data() const noexcept { return m_Iterator; }
+	inline SizeType size() const noexcept { return m_Size; }
+	inline SizeType capacity() const noexcept { return m_Capacity; }
+	inline bool empty() const noexcept { return m_Size > 0; }
+	inline Reference front() const noexcept { return m_Iterator[0]; }
+	inline Reference back() const noexcept { return m_Iterator[m_Size - 1]; }
+	inline Iterator begin() const noexcept { return m_Iterator; }
+	inline Iterator end() const noexcept { return m_Iterator + m_Size; }
 
-	constexpr inline SizeType MaxSize() const noexcept { return static_cast<SizeType>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
+	inline constexpr CustomAllocator<Type> get_allocator() const noexcept { return m_Allocator; }
 
-	constexpr inline void Reserve(SizeType capacity) {
+	constexpr inline SizeType maxSize() const noexcept { return static_cast<SizeType>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
+
+	constexpr inline void reserve(SizeType capacity) {
 		if (m_Capacity > capacity)
 			return;
-		if (capacity > MaxSize())
+		if (capacity > maxSize())
 			throw std::length_error("Max allowed container size exceeded!");
 
 		Iterator NewBuffer = m_Allocator.allocate(sizeof(Type) * capacity);
@@ -288,7 +312,7 @@ public:
 		}
 
 		std::memmove(NewBuffer, m_Iterator, m_Size * sizeof(Type));
-		m_Allocator.deallocate<Type>(m_Iterator, (m_Capacity / 2) * sizeof(Type));
+		m_Allocator.deallocate<Type>(m_Iterator, (m_Capacity / 2));
 		m_Iterator = NewBuffer;
 	}
 	constexpr inline void ShrinkToFit() {
@@ -296,7 +320,7 @@ public:
 			return;
 
 		if (m_Size == 0 && m_Capacity > 0) {
-			m_Allocator.deallocate<Type>(m_Iterator, m_Capacity * sizeof(Type));
+			m_Allocator.deallocate<Type>(m_Iterator, m_Capacity);
 			m_Iterator = nullptr;
 			m_Capacity = 0;
 			return;
@@ -306,17 +330,17 @@ public:
 			if (!NewBuffer)
 				throw std::bad_alloc();
 
-			SizeType DeallocationSize = m_Capacity * sizeof(Type);
+			SizeType DeallocationSize = m_Capacity;
 			m_Capacity = m_Size;
 			std::memmove(NewBuffer, m_Iterator, m_Size * sizeof(Type));
 			m_Allocator.deallocate<Type>(m_Iterator, DeallocationSize);
 			m_Iterator = NewBuffer;
 		}
 	}
-	constexpr inline void Swap(DynamicArray<Type>& other) noexcept {
-		SizeType Capacity = this->m_Capacity;
+	constexpr inline void Swap(Container<Type>& other) noexcept {
+		SizeType capacity = this->m_Capacity;
 		this->m_Capacity = other.m_Capacity;
-		other.m_Capacity = Capacity;
+		other.m_Capacity = capacity;
 		
 		SizeType SizeType = this->m_Size;
 		this->m_Size = other.m_Size;
@@ -326,7 +350,8 @@ public:
 		this->m_Iterator = other.m_Iterator;
 		other.m_Iterator = Iterator;
 
-		//std::swap(*this, other);
+		if (std::allocator_traits<CustomAllocator<Type>>::propagate_on_container_swap::value)
+			std::swap(m_Allocator, other.m_Allocator);
 	}
 
 	constexpr void Assign(SizeType count, const Reference value) {
@@ -383,4 +408,17 @@ private:
 	SizeType m_Capacity = 0;
 	CustomAllocator<Type> m_Allocator;
 };
-#endif // !DYNAMIC_ARRAY
+
+
+
+namespace {
+
+	//Operators
+
+
+}
+
+
+
+
+#endif // !CONTAINER

@@ -1,7 +1,8 @@
 #include <exception>
 #include <iostream>
 
-#include "DynamicArray.h"
+#include "Container.h"
+#include "Profiler.h"
 
 
 class Test {
@@ -59,19 +60,27 @@ public:
 };
 int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
-		DynamicArray<Test> Array;
+		Container<Test> Array;
+		Profiler MainProfiler;
 
+		//DynamicArray<Test> Array2;
 
 		//Array.Emplaceback(1);
 		//Array.Emplaceback(2);
 		//Array.Emplaceback(3);
 		//Array.Emplaceback(4);
 
+		MainProfiler.StartProfile("TestProfile");
 		Array.Pushback(4);
 		Array.Emplaceback(3);
 		Array.Pushback(2);
 		Array.Emplaceback(1);
-		DynamicArray<Test> Array2 = Array;
+		Container<Test> Array2;
+		Array2 = std::move(Array);
+		auto results = MainProfiler.EndProfile("TestProfile");
+		std::cout << "It took " << results->AsMicroseconds() << " Mircoseconds" << std::endl;
+		std::cout << "It took " << results->AsMilliseconds() << " Milliseconds" << std::endl;
+		std::cout << "It took " << results->AsSeconds() << " Seconds" << std::endl;
 		//Array2.Swap(Array);
 	}
 	catch (const std::exception& exception) {
