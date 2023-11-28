@@ -19,17 +19,22 @@ public:
 	//using is_always_equal						 = std::true_type; //C++17 for non-empty allocators that are always equal
 
 public:
-	CustomAllocator() noexcept = delete;/*  {
-		std::cout << "My allocator ctor ctor was called" << std::endl;
-	}*/
+	struct AllocatorLog {
+		size_type m_Allocations = 0;
+		size_type m_Deallocations = 0;
+		size_type m_AllocatedMemory = 0;
+		size_type m_DeallocatedMemory = 0;
+		size_type m_Constructions = 0;
+		size_type m_Deconstructions = 0;
+	};
 
-	CustomAllocator(int id) noexcept 
-		: m_ID(id)
-	{
+public:
+	CustomAllocator() noexcept {
+		std::cout << "My allocator ctor ctor was called" << std::endl;
 	}
 	~CustomAllocator() {
-		if (m_AllocatedMemory > 0)
-			std::cout << "Memory was not deallocated!\n" << m_AllocatedMemory << " Bytes was leaked!" << std::endl;
+		//if (m_Log.m_AllocatedMemory > m_Log.m_DeallocatedMemory && m_Log.m_Allocations != m_Log.m_Deallocations)
+			//std::cout << "Memory was not deallocated!\n" << m_Log.m_AllocatedMemory << " Bytes was leaked!" << std::endl;
 	}
 
 	template <class U>
@@ -37,46 +42,46 @@ public:
 		std::cout << "My allocator custom ctor was called" << std::endl;
 	}
 
-	template<class... args>
-	inline void construct(pointer address, args&&... arguments) {
+	template<class T, class... args>
+	constexpr inline void construct(T* address, args&&... arguments) {
 
 		std::construct_at(address, std::forward<args>(arguments)...);
-
-		m_Allocations++;
-		m_AllocatedMemory += sizeof(value_type);
-		std::cout << "Allocation (construct) was made with size " << sizeof(value_type) << std::endl;
+		m_Log.m_Constructions++;
 	}
 
+	template<class T>
+	constexpr inline void destroy(T* address) {
+		
+		std::destroy_at(address);
+		m_Log.m_Deconstructions++;
+	}
+
+	//Incosistency between allocate and deallocate with size
 
 	[[nodiscard]] constexpr inline pointer allocate(const size_type size) {
 		if (size == 0)
 			return nullptr;
 
-		m_Allocations++;
-		m_AllocatedMemory += size;
-		pointer AllocatedMemory = static_cast<pointer>(malloc(size));
-
-		std::cout << "Allocation (allocate) was made with size " << size << std::endl;
-		return AllocatedMemory;
+		m_Log.m_AllocatedMemory += size;
+		m_Log.m_Allocations++;
+		return static_cast<pointer>(malloc(size));;
 	}
 	template<typename T>
-	inline void deallocate(T* address, size_type size) {
+	inline constexpr void deallocate(T* address, size_type size) {
 		if (!address)
 			return;
 
-		m_Allocations--;
-		m_AllocatedMemory -= size * sizeof(T);
-		m_Deallocations++;
+		m_Log.m_DeallocatedMemory += size * sizeof(T);
+		m_Log.m_Deallocations++;
 		free(address);
+	}
 
-		std::cout << "Deallocation was made with size " << size << std::endl;
+	inline constexpr size_type max_size() const noexcept {
+		return std::numeric_limits<size_type>::max() / sizeof(value_type);
 	}
 
 private:
-	int m_ID;
-	size_type m_Allocations = 0;
-	size_type m_Deallocations = 0;
-	size_type m_AllocatedMemory = 0;
+	AllocatorLog m_Log;
 };
 
 namespace {

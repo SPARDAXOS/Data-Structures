@@ -8,16 +8,16 @@
 class Test {
 public:
 	Test() {
-		std::cout << "Default ctor" << std::endl;
+		//std::cout << "Default ctor" << std::endl;
 	}
 	Test(int arg) 
 		: number1(arg), number2(arg), number3(arg), number4(arg)
 	{
-		std::cout << "Custom ctor " << arg << std::endl;
+		//std::cout << "Custom ctor " << arg << std::endl;
 
 	}
 	~Test() {
-		std::cout << "Dtor" << std::endl;
+		//std::cout << "Dtor" << std::endl;
 	}
 
 	Test(const Test& other) {
@@ -29,7 +29,7 @@ public:
 		this->number3 = other.number3;
 		this->number4 = other.number4;
 
-		std::cout << "Copy" << std::endl;
+		//std::cout << "Copy" << std::endl;
 		return *this;
 	}
 
@@ -48,7 +48,7 @@ public:
 		other.number3 = 0;
 		other.number4 = 0;
 
-		std::cout << "Move" << std::endl;
+		//std::cout << "Move" << std::endl;
 		return *this;
 	}
 
@@ -61,6 +61,8 @@ public:
 int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
 		Container<Test> Array;
+		std::vector<Test> vector;
+
 		Profiler MainProfiler;
 
 		//DynamicArray<Test> Array2;
@@ -70,17 +72,34 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		//Array.Emplaceback(3);
 		//Array.Emplaceback(4);
 
+
 		MainProfiler.StartProfile("TestProfile");
-		Array.Pushback(4);
-		Array.Emplaceback(3);
-		Array.Pushback(2);
-		Array.Emplaceback(1);
-		Container<Test> Array2;
-		Array2 = std::move(Array);
+		for (uint16 i = 0; i < 50000; i++)
+			vector.emplace_back(i);
+
 		auto results = MainProfiler.EndProfile("TestProfile");
-		std::cout << "It took " << results->AsMicroseconds() << " Mircoseconds" << std::endl;
-		std::cout << "It took " << results->AsMilliseconds() << " Milliseconds" << std::endl;
-		std::cout << "It took " << results->AsSeconds() << " Seconds" << std::endl;
+		std::cout << "Vector took " << results->AsMicroseconds() << " Mircoseconds" << std::endl;
+		std::cout << "Vector took " << results->AsMilliseconds() << " Milliseconds" << std::endl;
+		std::cout << "Vector took " << results->AsSeconds() << " Seconds" << std::endl;
+
+
+
+		MainProfiler.StartProfile("TestProfile2");
+		for (uint16 i = 0; i < 50000; i++)
+			Array.emplace_back(i);
+
+		auto results2 = MainProfiler.EndProfile("TestProfile2");
+		std::cout << "My container took " << results2->AsMicroseconds() << " Mircoseconds" << std::endl;
+		std::cout << "My container took " << results2->AsMilliseconds() << " Milliseconds" << std::endl;
+		std::cout << "My container took " << results2->AsSeconds() << " Seconds" << std::endl;
+
+
+		//Array.Pushback(4);
+		//Array.Pushback(3);
+		//Array.Pushback(2);
+		//Array.Pushback(1);
+		//Container<Test> Array2;
+		//Array2 = std::move(Array);
 		//Array2.Swap(Array);
 	}
 	catch (const std::exception& exception) {
