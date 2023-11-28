@@ -3,6 +3,7 @@
 
 #include "Container.h"
 #include "Profiler.h"
+#include "Sorting.h"
 
 
 class Test {
@@ -60,7 +61,19 @@ public:
 };
 int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
-		Container<Test> Array;
+		Container<int> Array;
+		Array.push_back(9);
+		Array.push_back(10);
+		Array.push_back(7);
+		Array.push_back(1);
+		Array.push_back(4);
+		Array.push_back(3);
+		Array.push_back(2);
+		Array.push_back(6);
+		Array.push_back(5);
+		Array.push_back(8);
+		Sorting::InsertionSort(Array.begin(), Array.end());
+
 		std::vector<Test> vector;
 
 		Profiler MainProfiler;
@@ -73,25 +86,28 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		//Array.Emplaceback(4);
 
 
-		MainProfiler.StartProfile("TestProfile");
-		for (uint16 i = 0; i < 50000; i++)
-			vector.emplace_back(i);
-
-		auto results = MainProfiler.EndProfile("TestProfile");
-		std::cout << "Vector took " << results->AsMicroseconds() << " Mircoseconds" << std::endl;
-		std::cout << "Vector took " << results->AsMilliseconds() << " Milliseconds" << std::endl;
-		std::cout << "Vector took " << results->AsSeconds() << " Seconds" << std::endl;
 
 
-
-		MainProfiler.StartProfile("TestProfile2");
-		for (uint16 i = 0; i < 50000; i++)
-			Array.emplace_back(i);
-
-		auto results2 = MainProfiler.EndProfile("TestProfile2");
-		std::cout << "My container took " << results2->AsMicroseconds() << " Mircoseconds" << std::endl;
-		std::cout << "My container took " << results2->AsMilliseconds() << " Milliseconds" << std::endl;
-		std::cout << "My container took " << results2->AsSeconds() << " Seconds" << std::endl;
+		//STD VS CONTAINER
+		//MainProfiler.StartProfile("TestProfile");
+		//for (uint16 i = 0; i < 50000; i++)
+		//	vector.emplace_back(i);
+		//
+		//auto results = MainProfiler.EndProfile("TestProfile");
+		//std::cout << "Vector took " << results->AsMicroseconds() << " Mircoseconds" << std::endl;
+		//std::cout << "Vector took " << results->AsMilliseconds() << " Milliseconds" << std::endl;
+		//std::cout << "Vector took " << results->AsSeconds() << " Seconds" << std::endl;
+		//
+		//
+		//
+		//MainProfiler.StartProfile("TestProfile2");
+		//for (uint16 i = 0; i < 50000; i++)
+		//	Array.emplace_back(i);
+		//
+		//auto results2 = MainProfiler.EndProfile("TestProfile2");
+		//std::cout << "My container took " << results2->AsMicroseconds() << " Mircoseconds" << std::endl;
+		//std::cout << "My container took " << results2->AsMilliseconds() << " Milliseconds" << std::endl;
+		//std::cout << "My container took " << results2->AsSeconds() << " Seconds" << std::endl;
 
 
 		//Array.Pushback(4);

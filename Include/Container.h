@@ -108,48 +108,63 @@ public:
 		//std::cout << "Array Dtor" << std::endl;
 	}
 
-	constexpr Container(const Container& other) {
-		//*this = other;
-		//New allocator by traits func then uses it to allocate resources
-
-		this->m_Allocator = AllocatorTraits::select_on_container_copy_construction(other.m_Allocator);
-		assign(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
-	}
+	//constexpr Container(const Container& other) {
+	//	//*this = other;
+	//	//New allocator by traits func then uses it to allocate resources
+	//
+	//	this->m_Allocator = AllocatorTraits::select_on_container_copy_construction(other.m_Allocator);
+	//	assign(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
+	//}
 	Container& operator=(const Container& other) noexcept {
-		if (this->m_Iterator == other.m_Iterator)
+		if (this == &other.m_Iterator)
 			return *this;
-		else {
-			//If new alloc is not equal to new then use old to dealloc
-			//Otherwise, dont dealloc old mem and see if you can reuse it otherwise make it fit
-			//Copy elements
 
-			if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value) {
+		//If new alloc is not equal to new then use old to dealloc
+		//Otherwise, dont dealloc old mem and see if you can reuse it otherwise make it fit
+		//Copy elements
 
-				clear(); //Not sure
+		clear(); //Not sure - Makes since that copying would get rid of all elements regardless of steps
 
-				auto OldAllocator = this->m_Allocator;
-				this->m_Allocator = other->m_Allocator;
-				if (this->m_Allocator != OldAllocator) {
-					OldAllocator.deallocate<Type>(this->m_Iterator, this->m_Capacity);
-					reserve(other.capacity());
-					assign(other.begin(), other.end());
-				}
-				else {
-					//Move this out? this wot section with minor adjustments to the one above it?
-					if (this->m_Capacity >= other.size())
-						assign(other.begin(), other.end());
-					else {
-						reserve(other->capacity());
-						assign(other.begin(), other.end());
-					}
-				}
+		if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value) {
+
+
+			auto OldAllocator = this->m_Allocator;
+			this->m_Allocator = other->m_Allocator;
+			if (this->m_Allocator != OldAllocator) {
+				OldAllocator.deallocate<Type>(this->m_Iterator, this->m_Capacity);
+
+				//reserve(other.capacity());
+				//assign(other.begin(), other.end());
+				//return *this;
 			}
-			//otherwise wot? 
-
-			return *this;
 		}
+
+		//This implies that if my old resuable memory is big enough then i dont copy the capacity but keep my own?
+		//Is copying capacity even logical? It might seem weird tho...
+
+		if (other.size() > this->m_Capacity) {
+			reserve(other.capacity());
+			assign(other.begin(), other.end());
+		}
+		else
+			assign(other.begin(), other.end());
+
+		return *this;
 	}
 
+
+	Container& operator=(Container&& other) noexcept {
+		if (this == &other.m_Iterator)
+			return *this;
+
+		//Replace elements using move semantics
+		//If propagate is yes, copy other allocator
+		//If propagate is no and allocators are not equal, this cant take ownership of memory and most move assign all elements of other and use own alloc
+	}
+
+
+	/*
+	
 	Container(Container&& other) noexcept {
 		//Move constructs the allocator and steals resources
 		m_Allocator = std::move(other.m_Allocator);
@@ -205,7 +220,7 @@ public:
 			return *this;
 		}
 	}
-
+	*/
 	inline Reference operator[](unsigned int index) const noexcept { return m_Iterator[index]; }
 
 public:
@@ -461,9 +476,10 @@ public:
 
 
 	//THEY DO NOT INCREASE THE SIZE!!!!
+	//It replaces elements , from beginning only? size could stay still or increase
 	constexpr void assign(SizeType count, const Reference value) {
 		if (m_Size > 0)
-			clear();
+			clear(); //? wot
 
 		for (SizeType i = 0; i < count; i++)
 			emplace_back(value);
@@ -507,6 +523,8 @@ private:
 		}
 		return INVALID_INDEX;
 	}
+	//allocate_memory_block
+	//deallocate_
 
 
 private:

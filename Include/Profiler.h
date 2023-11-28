@@ -18,14 +18,14 @@ namespace {
 
 }
 
-class ProfilingUnit final {
+class Profile final {
 public:
-	explicit ProfilingUnit() noexcept = default;
-	ProfilingUnit(std::string_view id, Timepoint start)
+	explicit Profile() noexcept = default;
+	Profile(std::string_view id, Timepoint start)
 		: m_ID(id), m_StartingTimepoint(start)
 	{
 	}
-	ProfilingUnit(std::string_view id, Timepoint start, Timepoint end, Duration duration)
+	Profile(std::string_view id, Timepoint start, Timepoint end, Duration duration)
 		: m_ID(id), m_StartingTimepoint(start), m_EndTimepoint(end), m_Duration(duration)
 	{
 	}
@@ -44,6 +44,10 @@ public:
 
 
 class Profiler final {
+public:
+	using Predicate = std::function<void(void)>;
+
+
 public:
 	explicit Profiler() noexcept = default;
 	~Profiler() noexcept = default;
@@ -65,11 +69,11 @@ public:
 		m_RunningProfiles++;
 		return true;
 	}
-	[[nodiscard]] inline std::optional<ProfilingUnit> EndProfile(std::string_view id) {
+	[[nodiscard]] inline std::optional<Profile> EndProfile(std::string_view id) noexcept {
 		auto TargetUnit = FindUnit(id);
 		if (!TargetUnit.has_value()) {
 			std::cout << "Failed to find and end profiling unit designated " << id << std::endl;
-			return std::optional<ProfilingUnit>(std::nullopt);
+			return std::optional<Profile>(std::nullopt);
 		}
 
 		TargetUnit->m_EndTimepoint = m_Clock.now();
@@ -79,22 +83,35 @@ public:
 		m_RunningProfiles--;
 		return TargetUnit;
 	}
+	[[nodiscard]] inline Profile QuickProfile(Predicate block, uint32 iterations = 1) {
+		if (!StartProfile("QuickProfile" + std::to_string(iterations)))
+			return Profile();
+
+		for (uint32 i = 0; i < iterations; i++)
+			block();
+
+		auto Results = EndProfile("QuickProfile" + std::to_string(iterations));
+		if (!Results.has_value())
+			return Profile();
+
+		return *Results;
+	}
 
 
 private:
-	inline std::optional<ProfilingUnit> FindUnit(std::string_view id) const noexcept {
+	inline std::optional<Profile> FindUnit(std::string_view id) const noexcept {
 		for (auto& unit : m_ProfillingUnits) {
 			if (unit.m_ID == id)
-				return std::optional<ProfilingUnit>(unit);
+				return std::optional<Profile>(unit);
 		}
 
-		return std::optional<ProfilingUnit>(std::nullopt);
+		return std::optional<Profile>(std::nullopt);
 	}
 	
 
 private:
 	std::chrono::high_resolution_clock m_Clock;
-	Container<ProfilingUnit> m_ProfillingUnits;
+	Container<Profile> m_ProfillingUnits;
 	uint32 m_RunningProfiles = 0;
 };
 #endif // !PROFILER
