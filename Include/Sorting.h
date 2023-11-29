@@ -133,21 +133,16 @@ namespace Sorting {
 
 
 	template<IsPointer Iterator>
-	void Partition(Iterator start, Iterator end) noexcept {
+	std::pair<Iterator, Iterator> Partition(Iterator start, Iterator end) noexcept {
+
+		//Two tasks, partition into smaller parts and put 2 sections together.
 
 		int64 RangeSize = (end - start) + 1;
 
 		//Its possible to end up with a final partition between 3 elements if the count is odd.
+
 		if (RangeSize == 1) {
-			return; 
-		}
-		if (RangeSize == 2) {
-			if (*start > *end) {
-				auto Temp = *start;
-				*start = *end;
-				*end = Temp;
-				return;
-			}
+			return std::pair<Iterator, Iterator>(start, start); //Just go back with the one element really..
 		}
 		else {
 
@@ -159,8 +154,17 @@ namespace Sorting {
 			Iterator SecondHalfStart = start + SplitPoint;
 			Iterator SecondHalfEnd = end;
 
-			Partition(FirstHalfStart, FirstHalfEnd);
-			Partition(SecondHalfStart, SecondHalfEnd);
+			auto Range1 = Partition(FirstHalfStart, FirstHalfEnd);
+			auto Range1 = Partition(SecondHalfStart, SecondHalfEnd);
+
+
+			//Sort them!
+
+			Iterator MergedRangeStart;
+			Iterator MergedRangeEnd;
+
+			return std::pair<Iterator, Iterator>(MergedRangeStart, MergedRangeEnd);
+			//Merge here then return the merged results (1 range that is the merged results of partition 1 and 2)
 		}
 	}
 
