@@ -4,6 +4,7 @@
 #include "Container.h"
 #include "Profiler.h"
 #include "Sorting.h"
+#include "Graph.h"
 
 
 class Test {
@@ -61,22 +62,36 @@ public:
 };
 int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
+		Profiler MainProfiler;
+
 		Container<int> Array;
+		Array.push_back(1);
+		Array.push_back(2);
+		Array.push_back(3);
+		Array.push_back(4);
+		Array.push_back(5);
+		Array.push_back(6);
+		Array.push_back(7);
+		Array.push_back(8);
 		Array.push_back(9);
 		Array.push_back(10);
-		Array.push_back(7);
-		Array.push_back(1);
-		Array.push_back(4);
-		Array.push_back(3);
-		Array.push_back(2);
-		Array.push_back(6);
-		Array.push_back(5);
-		Array.push_back(8);
-		Sorting::InsertionSort(Array.begin(), Array.end());
+		Array.push_back(11);
+		//Array.push_back(1);
+		//Array.push_back(2);
+		//Array.push_back(4);
+		//Array.push_back(6);
+		//Array.push_back(8);
+		//Array.push_back(5);
+		//Array.push_back(7);
+		//Array.push_back(9);
+		//Array.push_back(10);
+		//Array.push_back(3);
+		//Array.push_back(11);
+		Sorting::MergeSort(Array.begin(), Array.end());
 
 		std::vector<Test> vector;
 
-		Profiler MainProfiler;
+
 
 		//DynamicArray<Test> Array2;
 

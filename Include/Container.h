@@ -49,8 +49,10 @@ public:
 			emplace_back({});
 	}
 
+	//EDITING THIS! THE ALLOCATOR PART
 	template<class InputIterator>
 	constexpr Container(InputIterator first, InputIterator last, const Allocator& allocator = Allocator()) {
+		m_Allocator = allocator;
 		assign(first, last);
 	}
 	//Assign does not set size!!!
@@ -475,11 +477,11 @@ public:
 
 
 
-	//THEY DO NOT INCREASE THE SIZE!!!!
+	//THEY DO NOT INCREASE THE SIZE!!!! Emplace back actually does The replacement part is my only worry since it shouldnt emplace back but rather insert
 	//It replaces elements , from beginning only? size could stay still or increase
 	constexpr void assign(SizeType count, const Reference value) {
 		if (m_Size > 0)
-			clear(); //? wot
+			clear(); //? wot It should do this! Replace instead!
 
 		for (SizeType i = 0; i < count; i++)
 			emplace_back(value);

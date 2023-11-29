@@ -1,4 +1,4 @@
-
+#include "Container.h"
 
 #ifndef SORTING_H
 #define SORTING_H
@@ -17,6 +17,9 @@ namespace Sorting {
 			return false;
 
 		if (start > end)
+			return false;
+
+		if ((end - start) < 2)
 			return false;
 
 		return true;
@@ -64,7 +67,6 @@ namespace Sorting {
 
 		for (Iterator Cursor = start; Cursor < end; Cursor++) {
 			for (Iterator AfterCursor = start; AfterCursor < end - 1; AfterCursor++) {
-
 				if (*AfterCursor > *(AfterCursor + 1)) {
 					auto Temp = *AfterCursor;
 					*AfterCursor = *(AfterCursor + 1);
@@ -91,29 +93,102 @@ namespace Sorting {
 		}
 	}
 
-	template<IsPointer Iterator>
-	constexpr inline void CountingSort(Iterator start, Iterator end) noexcept {
+
+	inline void CountingSort(int* start, int* end) noexcept {
 		if (!ValidateRange(start, end))
 			return;
 
-		//static_assert(decltype(Iterator) == float&& "CountingSort does not work on decimals!");
+
+		int* CurrentElement = start;
+		size_t HighestElementValue = *start;
+		while (CurrentElement != end) {
+			if (*CurrentElement > HighestElementValue)
+				HighestElementValue = *CurrentElement;
+			CurrentElement++;
+		}
+
+
+		int32 DefaultCount = 0;
+		Container<int> Count; 
+		Container<int> ElementsCopy(start, end - 1); //problem ALSO SHOULD NOT ADD END ELEMENT! OR CHECK CPPREF the ctor is the problem to check!
+		Count.assign(++HighestElementValue, DefaultCount);
+
+		for (int* i = start; i < end; i++)
+			Count[*i]++;
+
+		for (uint32 i = 1; i < Count.size(); i++)
+			*(Count.begin() + i) += *(Count.begin() + i - 1);
+
+		for (int* i = ElementsCopy.end() - 1; i > ElementsCopy.begin() - 1; i--) {
+			Count[*i]--;
+			*(start + (Count[*i])) = *i;
+		}
+	}
+
+	template<IsPointer Iterator>
+	constexpr inline void QuickSort(Iterator start, Iterator end) noexcept {
+
 
 	}
 
-	template<class Iterator>
-	constexpr inline void QuickSort(Iterator* start, Iterator* end) noexcept {
 
+	template<IsPointer Iterator>
+	void Partition(Iterator start, Iterator end) noexcept {
 
+		int64 RangeSize = (end - start) + 1;
+
+		//Its possible to end up with a final partition between 3 elements if the count is odd.
+		if (RangeSize == 1) {
+			return; 
+		}
+		if (RangeSize == 2) {
+			if (*start > *end) {
+				auto Temp = *start;
+				*start = *end;
+				*end = Temp;
+				return;
+			}
+		}
+		else {
+
+			int64 SplitPoint = RangeSize / 2;
+
+			Iterator FirstHalfStart = start;
+			Iterator FirstHalfEnd = start + (SplitPoint - 1);
+
+			Iterator SecondHalfStart = start + SplitPoint;
+			Iterator SecondHalfEnd = end;
+
+			Partition(FirstHalfStart, FirstHalfEnd);
+			Partition(SecondHalfStart, SecondHalfEnd);
+		}
 	}
 
-	template<class Iterator>
-	constexpr inline void MergeSort(Iterator* start, Iterator* end) noexcept {
+	template<IsPointer Iterator>
+	constexpr inline void MergeSort(Iterator start, Iterator end) noexcept {
+		
+		int64 RangeSize = end - start; //Removing 1 that is end
+		int64 SplitPoint = RangeSize / 2;
 
+		Iterator FirstHalfStart = start;
+		Iterator FirstHalfEnd = start + (SplitPoint - 1);
 
+		Iterator SecondHalfStart = start + SplitPoint;
+		Iterator SecondHalfEnd = end - 1;
+
+		std::cout << FirstHalfStart;
+		std::cout << FirstHalfEnd;
+		std::cout << SecondHalfStart;
+		std::cout << SecondHalfEnd;
+
+		Partition(FirstHalfStart, FirstHalfEnd);
+		Partition(SecondHalfStart, SecondHalfEnd);
 	}
 
-	template<class Iterator>
-	constexpr inline void HeapSort(Iterator* start, Iterator* end) noexcept {
+
+
+	template<IsPointer Iterator>
+	constexpr inline void HeapSort(Iterator start, Iterator end) noexcept {
 
 
 	}
