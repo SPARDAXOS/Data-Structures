@@ -93,7 +93,6 @@ namespace Sorting {
 		}
 	}
 
-
 	inline void CountingSort(int* start, int* end) noexcept {
 		if (!ValidateRange(start, end))
 			return;
@@ -133,17 +132,12 @@ namespace Sorting {
 
 
 	template<IsPointer Iterator>
-	std::pair<Iterator, Iterator> Partition(Iterator start, Iterator end) noexcept {
-
-		//Two tasks, partition into smaller parts and put 2 sections together.
+	std::pair<Iterator, Iterator> MergePartition(Iterator start, Iterator end) noexcept {
 
 		int64 RangeSize = (end - start) + 1;
 
-		//Its possible to end up with a final partition between 3 elements if the count is odd.
-
-		if (RangeSize == 1) {
+		if (RangeSize == 1)
 			return std::pair<Iterator, Iterator>(start, start); //Just go back with the one element really..
-		}
 		else {
 
 			int64 SplitPoint = RangeSize / 2;
@@ -154,39 +148,58 @@ namespace Sorting {
 			Iterator SecondHalfStart = start + SplitPoint;
 			Iterator SecondHalfEnd = end;
 
-			auto Range1 = Partition(FirstHalfStart, FirstHalfEnd);
-			auto Range1 = Partition(SecondHalfStart, SecondHalfEnd);
+			std::pair<Iterator, Iterator> Range1 = MergePartition(FirstHalfStart, FirstHalfEnd);
+			std::pair<Iterator, Iterator> Range2 = MergePartition(SecondHalfStart, SecondHalfEnd);
 
 
-			//Sort them!
+			for (Iterator Cursor = Range1.first; Cursor < Range2.second + 1; Cursor++) { //+1
+				auto LowestValueIterator = Cursor;
+				for (Iterator SortCursor = Cursor; SortCursor < Range2.second + 1; SortCursor++) { //+1
+					if (*LowestValueIterator > *SortCursor)
+						LowestValueIterator = SortCursor;
+				}
 
-			Iterator MergedRangeStart;
-			Iterator MergedRangeEnd;
+				if (LowestValueIterator == Cursor)
+					continue;
 
-			return std::pair<Iterator, Iterator>(MergedRangeStart, MergedRangeEnd);
-			//Merge here then return the merged results (1 range that is the merged results of partition 1 and 2)
+				auto Temp = *Cursor;
+				*Cursor = *LowestValueIterator;
+				*LowestValueIterator = Temp;
+			}
+
+			return std::pair<Iterator, Iterator>(start, end);
 		}
 	}
 
 	template<IsPointer Iterator>
 	constexpr inline void MergeSort(Iterator start, Iterator end) noexcept {
 		
-		int64 RangeSize = end - start; //Removing 1 that is end
+		int64 RangeSize = end - start; 
 		int64 SplitPoint = RangeSize / 2;
 
 		Iterator FirstHalfStart = start;
 		Iterator FirstHalfEnd = start + (SplitPoint - 1);
 
 		Iterator SecondHalfStart = start + SplitPoint;
-		Iterator SecondHalfEnd = end - 1;
+		Iterator SecondHalfEnd = end - 1;//Removing 1 that is the after end
 
-		std::cout << FirstHalfStart;
-		std::cout << FirstHalfEnd;
-		std::cout << SecondHalfStart;
-		std::cout << SecondHalfEnd;
+		std::pair<Iterator, Iterator> Range1 = MergePartition(FirstHalfStart, FirstHalfEnd);
+		std::pair<Iterator, Iterator> Range2 = MergePartition(SecondHalfStart, SecondHalfEnd);
 
-		Partition(FirstHalfStart, FirstHalfEnd);
-		Partition(SecondHalfStart, SecondHalfEnd);
+		for (Iterator Cursor = Range1.first; Cursor < Range2.second + 1; Cursor++) { //+1
+			auto LowestValueIterator = Cursor;
+			for (Iterator SortCursor = Cursor + 1; SortCursor < Range2.second + 1; SortCursor++) { //+1
+				if (*LowestValueIterator > *SortCursor)
+					LowestValueIterator = SortCursor;
+			}
+
+			if (LowestValueIterator == Cursor)
+				continue;
+
+			auto Temp = *Cursor;
+			*Cursor = *LowestValueIterator;
+			*LowestValueIterator = Temp;
+		}
 	}
 
 
