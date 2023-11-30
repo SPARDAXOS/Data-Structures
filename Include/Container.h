@@ -55,48 +55,12 @@ public:
 		m_Allocator = allocator;
 		assign(first, last);
 	}
-	//Assign does not set size!!!
-
-	//6 is copy ctor
-	constexpr Container(const Container& other) 
-		:	m_Allocator(AllocatorTraits::selec_on_container_copy_construction(other.m_Allocator))
-	{
-		m_Size = other.m_Size;
-		reserve(m_Size);
-		std::copy(other.begin(), other.end(), m_Iterator);
-	}
-
-	constexpr Container(const Container& other, const Allocator& allocator) {
-		m_Allocator = Allocator(allocator);
-		m_Size = other.size();
-		reserve(m_Size);
-		std::copy(other.begin(), other.end(), m_Iterator);
-		//m_Allocator = Allocator(allocator); //Wouldnt make sense if i keep allocator cause its const ref!
-	}
-
-	//8 is move ctor
-	constexpr Container(Container&& other) noexcept {
-		m_Allocator = std::move(other.m_Allocator);
-
-		this->m_Iterator = other.m_Iterator;
-		this->m_Size = other.m_Size;
-		this->m_Capacity = other.m_Capacity;
-
-		other.m_Iterator = nullptr;
-		other.m_Size = 0;
-		other.m_Capacity = 0;
-	}
-
-	constexpr Container(Container&& other, const Allocator& allocator) {
-		m_Allocator = std::move(allocator);
-		m_Size = std::move(other.m_Size);
-		m_Capacity = std::move(other.m_Capacity);
-		if (allocator != m_Allocator) {
-			m_Iterator = std::move(other.m_Iterator);
 
 
-		}
-	}
+
+
+
+
 
 	constexpr Container(std::initializer_list<Type> list, const Allocator& allocator = Allocator()) {
 		assign(list);
@@ -105,27 +69,38 @@ public:
 
 
 	~Container() {
+		//Could be made into func destroy_and_deallocate()
 		clear();
-		m_Allocator.deallocate<Type>(m_Iterator, m_Capacity);
+		deallocate_memory_block(m_Capacity);
+		//m_Allocator.deallocate<Type>(m_Iterator, m_Capacity);
 		//std::cout << "Array Dtor" << std::endl;
 	}
 
-	//constexpr Container(const Container& other) {
-	//	//*this = other;
-	//	//New allocator by traits func then uses it to allocate resources
-	//
-	//	this->m_Allocator = AllocatorTraits::select_on_container_copy_construction(other.m_Allocator);
-	//	assign(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
-	//}
-	Container& operator=(const Container& other) noexcept {
-		if (this == &other.m_Iterator)
+
+	//Copy Semantics
+	constexpr Container(const Container& other) //NOT TESTED
+		: m_Size(other.m_Size), m_Allocator(AllocatorTraits::select_on_container_copy_construction(other.m_Allocator))
+	{
+		//Could be made into func
+		reserve(m_Size);
+		std::copy(other.begin(), other.end(), m_Iterator); //In the example, they are constructed in place
+	}
+	constexpr Container(const Container& other, const Allocator& allocator)  //NOT TESTED
+		: m_Size(other.m_Size), m_Allocator(allocator)
+	{
+		//Could be made into func
+		reserve(m_Size);
+		std::copy(other.begin(), other.end(), m_Iterator); //In the example, they are constructed in place
+	}
+	Container& operator=(const Container& other) noexcept { //NOT TESTED
+		if (this == &other)
 			return *this;
 
 		//If new alloc is not equal to new then use old to dealloc
 		//Otherwise, dont dealloc old mem and see if you can reuse it otherwise make it fit
 		//Copy elements
 
-		clear(); //Not sure - Makes since that copying would get rid of all elements regardless of steps
+		clear();
 
 		if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value) {
 
@@ -155,75 +130,78 @@ public:
 	}
 
 
-	Container& operator=(Container&& other) noexcept {
-		if (this == &other.m_Iterator)
-			return *this;
-
-		//Replace elements using move semantics
-		//If propagate is yes, copy other allocator
-		//If propagate is no and allocators are not equal, this cant take ownership of memory and most move assign all elements of other and use own alloc
+	//Move Semantics
+	constexpr Container(Container&& other) noexcept //NOT TESTED
+		: m_Allocator(std::move(other.m_Allocator)), m_Iterator(other.m_Iterator), m_Size(other.m_Size), m_Capacity(other.m_Capacity)
+	{
+		other.wipe();
 	}
+	constexpr Container(Container&& other, const Allocator& allocator)  //NOT TESTED
+		: m_Size(other.m_Size), m_Capacity(other.m_Capacity), m_Allocator(std::move(allocator))
+	{
+		if (allocator != other.get_allocator()) {
+			//This is the same code as the one in the move assignment operator overload. Make it resusable uninitialized_alloc_move
+			if (other.size() > this->m_Capacity)
+				reallocate(other.capacity()); //Will get me its capacity ONLY IF I CANT TAKE IT WITH MY OWN //Should probably also copy its capacity always for a clear move semantics
 
-
-	/*
-	
-	Container(Container&& other) noexcept {
-		//Move constructs the allocator and steals resources
-		m_Allocator = std::move(other.m_Allocator);
-
-		this->m_Iterator = other.m_Iterator;
-		this->m_Size = other.m_Size;
-		this->m_Capacity = other.m_Capacity;
-
-		other.m_Iterator = nullptr;
-		other.m_Size = 0;
-		other.m_Capacity = 0;
-
-
-		//*this = std::move(other);
-	}
-	Container& operator=(Container&& other) noexcept {
-		if (this->m_Iterator == other.m_Iterator)
-			return *this;
-		else {
-			clear();//Deallocate memory using own allocator
-
-			if constexpr (std::allocator_traits<CustomAllocator<Type>>::propagate_on_container_move_assignment::value) {
-				this->m_Allocator = std::move(other.m_Allocator); //Move assign from rhs allocator
-
-				//Memory ownership + stuff
-				this->m_Iterator = other.m_Iterator;
-				this->m_Size = other.m_Size;
-				this->m_Capacity = other.m_Capacity;
-
-				other.m_Iterator = nullptr;
-				other.m_Size = 0;
-				other.m_Capacity = 0;
-			}
-			else if (!std::allocator_traits<CustomAllocator<Type>>::propagate_on_container_move_assignment::value && this->m_Allocator == other.m_Allocator) {
-				//Move assignment is skipped for allocators
-				 
-				//Memory ownership + stuff
-				this->m_Iterator = other.m_Iterator;
-				this->m_Size = other.m_Size;
-				this->m_Capacity = other.m_Capacity;
-
-				other.m_Iterator = nullptr;
-				other.m_Size = 0;
-				other.m_Capacity = 0;
-			}
-			else if (!std::allocator_traits<CustomAllocator<Type>>::propagate_on_container_move_assignment::value && this->m_Allocator != other.m_Allocator) {
-				assign(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
-			}
-
-
-
-
-			return *this;
+			//This also constructs in place in the example.
+			for (SizeType i = 0; i < other.size(); i++) //Could be func move_elements or could resuse assign once it replaces.
+				this->at(i) = std::move(other[i]);
 		}
+		else
+			m_Iterator = other.m_Iterator;
+
+		other.wipe();
 	}
-	*/
-	inline Reference operator[](unsigned int index) const noexcept { return m_Iterator[index]; }
+	Container& operator=(Container&& other) noexcept { //NOT TESTED
+		if (this == &other)
+			return *this;
+
+
+		if constexpr (AllocatorTraits::propagate_on_container_move_assignment::value) { //SUCCESS
+			clear(); //Could be merged with below destroy_all_and_deallocate()
+			deallocate_memory_block(m_Capacity);
+
+			this->m_Allocator = std::move(other.get_allocator());
+			this->m_Iterator  = other.m_Iterator;
+			this->m_Size      = other.m_Size;
+			this->m_Capacity  = other.m_Capacity;
+
+			other.wipe();
+		}
+		else if (!AllocatorTraits::propagate_on_container_move_assignment::value && this->m_Allocator == other.get_allocator()) { //NOT TESTED
+			clear(); //Could be merged with below destroy_all_and_deallocate()
+			deallocate_memory_block(m_Capacity);
+
+			this->m_Iterator = other.m_Iterator;
+			this->m_Size = other.m_Size;
+			this->m_Capacity = other.m_Capacity;
+
+			other.wipe();
+		}
+		else if (!AllocatorTraits::propagate_on_container_move_assignment::value && this->m_Allocator != other.get_allocator()) { //NOT TESTED
+			//Cant take ownership of memory block, add elements instead and allocate memory if needed.
+			clear();
+			if (other.size() > this->m_Capacity)
+				reallocate(other.capacity()); //Will get me its capacity ONLY IF I CANT TAKE IT WITH MY OWN //Should probably also copy its capacity always for a clear move semantics
+
+			for (SizeType i = 0; i < other.size(); i++) //Could be func move_elements or could resuse assign once it replaces.
+				this->at(i) = std::move(other[i]);
+
+			this->m_Size = other.m_Size;
+			this->m_Capacity = other.m_Capacity;
+
+			other.deallocate_memory_block(other.capacity()); //Clear its memory
+			other.wipe();
+		}
+
+		//In any case, original elements are all destroyed or replaced by element-wise move-assignment
+
+		return *this;
+	}
+	//constexpr vector& operator=(std::initializer_list<T> ilist); //Last overload for assignment operator
+
+	inline Reference operator[](SizeType index) const noexcept { return m_Iterator[index]; }
 
 public:
 	void push_back(ConstantReference element) {
@@ -253,7 +231,7 @@ public:
 		return back();
 	}
 
-	inline void pop_back() {
+	constexpr inline void pop_back() {
 		if (m_Size == 0)
 			return;
 
@@ -263,27 +241,24 @@ public:
 		m_Size--;
 	}
 
-	inline Type at(int index) const {
-		if (index >= m_Size || index < 0)
-			throw std::invalid_argument("Index out of bounds");
+	constexpr inline Reference at(SizeType index) {
+		if (index >= m_Size)
+			throw std::out_of_range("Index out of bounds");
+
+		return m_Iterator[index];
+	}
+	constexpr inline ConstantReference at(SizeType index) const {
+		if (index >= m_Size)
+			throw std::out_of_range("Index out of bounds");
 
 		return m_Iterator[index];
 	}
 
-	inline void clear() {
+	constexpr inline void clear() noexcept {
 		if (m_Size == 0)
 			return;
 
-
-		if (std::destructible<Type>) {
-			for (unsigned int i = 0; i < m_Size; i++)
-				std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, m_Iterator + i);
-		}
-
-		//Dtor
-		//Pushback and emplace copy/inplace difference
-
-		m_Size = 0;
+		destroy(begin(), end());
 	}
 
 
@@ -308,7 +283,7 @@ public:
 			if (Index == -1)
 				throw std::invalid_argument("Iterator out of bounds!");
 
-			if (std::destructible<Type>)
+			if (std::destructible<Type>) //Reuse destroy
 				std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, iterator);
 
 			std::shift_left(begin() + Index, end(), 1);
@@ -316,7 +291,7 @@ public:
 			return begin() + Index;
 		}
 	}
-	constexpr inline Iterator EraseIf(ConstantIterator iterator, Predicate predicate) {
+	constexpr inline Iterator erase_if(ConstantIterator iterator, Predicate predicate) {
 		if (m_Size == 0)
 			return nullptr;
 		if (predicate(*iterator))
@@ -332,36 +307,37 @@ public:
 		if (first == last)
 			return nullptr; //??
 
-		int StartIndex = find_index(first);
+		if (first > last)
+			throw std::invalid_argument("Invalid range!");
+
+		SizeType StartIndex = find_position(first);
 		if (StartIndex == INVALID_INDEX)
 			throw std::invalid_argument("Start iterator out of bounds!");
 
-		int EndIndex = find_index(last);
+		SizeType EndIndex = find_position(last);
 		if (EndIndex == INVALID_INDEX)
 			throw std::invalid_argument("End interator out of bounds!");
 
 		if (StartIndex > EndIndex)
 			throw std::invalid_argument("Start iterator overlaps end interator!");
 
-		//				std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, iterator);   ????????????
-		//This needs to iterate and call dtor on elements otherwise its borken
-		//Foreach from start indx to end inx, call destroy 
 
-		//Test this!!!!!!!!!!!!!!
-		for (int i = StartIndex; i < EndIndex + 1; i++)
-			std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, m_Iterator + StartIndex);
+		Iterator OldEnd = end();
+		destroy(m_Iterator + StartIndex, m_Iterator + EndIndex);
 
-		std::shift_left(begin() + StartIndex, end(), (EndIndex + 1) - StartIndex);
-		m_Size -= (EndIndex + 1) - StartIndex;
+		std::shift_left(begin() + StartIndex, OldEnd, (EndIndex + 1) - StartIndex); //Doesnt work after refactor due to destroy modifying size
 
 		return begin() + StartIndex;
 	}
-	constexpr inline Iterator EraseIf(ConstantIterator first, ConstantIterator last, Predicate predicate) {
+	constexpr inline Iterator erase_if(ConstantIterator first, ConstantIterator last, Predicate predicate) {
 		if (m_Size == 0)
 			return nullptr;
 
 		if (first == last)
-			return nullptr; //??
+			return nullptr; //?? check ref cpp
+
+		if (first > last)
+			throw std::invalid_argument("Invalid range!");
 
 		int StartIndex = find_index(first);
 		if (StartIndex == INVALID_INDEX)
@@ -383,7 +359,7 @@ public:
 			Current++;
 		}
 
-		return nullptr;
+		return nullptr; //??
 	}
 
 
@@ -419,6 +395,8 @@ public:
 	constexpr inline void reserve(SizeType capacity) {
 		if (m_Capacity > capacity || m_Capacity == capacity) //The second check needs testing!
 			return;
+
+		//from here down
 		if (capacity > maxSize())
 			throw std::length_error("Max allowed container size exceeded!");
 
@@ -511,22 +489,103 @@ public:
 	//Resize
 
 private:
-	constexpr inline int find_index(Iterator iterator) const noexcept {
-		for (unsigned int i = 0; i < m_Size; i++) {
+	constexpr inline Iterator allocate_memory_block(const SizeType capacity) {
+		if (capacity > maxSize())
+			throw std::length_error("Max allowed container size exceeded!");
+
+		//No guarantee
+		Iterator NewBuffer = m_Allocator.allocate(sizeof(Type) * capacity);
+		if (!NewBuffer)
+			throw std::bad_alloc();
+
+		m_Capacity = capacity;
+
+		return NewBuffer;
+	}
+	constexpr inline void deallocate_memory_block(const SizeType size) {
+		if (!m_Iterator)
+			return;
+
+
+		m_Allocator.deallocate<Type>(m_Iterator, size);
+		//Capacity == 0; ?? might cause complications with the other alloc funcs
+		m_Iterator = nullptr;
+	}
+	constexpr inline void reallocate(const SizeType capacity) {
+
+
+		Iterator NewBlock = allocate_memory_block(capacity * 2);
+		if (!NewBlock)
+			return; //??
+
+		if (m_Size > 0) {
+			std::memmove(NewBlock, m_Iterator, m_Size * sizeof(Type));
+			deallocate_memory_block((m_Capacity / 2)); //?? why 2/ allocate_memory_block would have doubled the size by this point
+			m_Iterator = NewBlock;
+		}
+
+		m_Iterator = NewBlock;
+	}
+
+	constexpr inline void destroy(Iterator target) noexcept {
+		if (!target)
+			return;
+
+		if (std::destructible<Type>) // Will pass check even if fundemental
+			AllocatorTraits::destroy(m_Allocator, target);
+
+		m_Size--;
+	}
+	constexpr inline void destroy(Iterator first, Iterator last) noexcept {
+		if (!first || !last)
+			return;
+
+		if (first > last)
+			return;
+
+		if (first == last)
+			destroy(first);
+
+		if (std::destructible<Type>) { // Will pass check even if fundemental
+			for (Iterator i = first; i < last; i++)
+				AllocatorTraits::destroy(m_Allocator, i);
+		}
+		std::cout << last - first;
+		m_Size -= last - first;
+	}
+
+	constexpr inline void wipe() noexcept {
+		clear(); //Test this!
+		m_Iterator = nullptr;
+		m_Size = 0;
+		m_Capacity = 0;
+	}
+
+private:
+	constexpr inline int find_position(Iterator iterator) const noexcept {
+		if (iterator == begin())
+			return 0;
+		if (iterator == end())
+			return static_cast<int>(m_Size);  //Scary
+
+		for (int i = 0; i < m_Size; i++) {
 			if (m_Iterator + i == iterator)
 				return i;
 		}
 		return INVALID_INDEX;
 	}
-	constexpr inline int find_index(ConstantIterator iterator) const noexcept {
-		for (unsigned int i = 0; i < m_Size; i++) {
+	constexpr inline int find_position(ConstantIterator iterator) const noexcept {
+		if (iterator == begin())
+			return 0;
+		if (iterator == end())
+			return static_cast<int>(m_Size); //Scary
+
+		for (int i = 0; i < m_Size; i++) {
 			if (m_Iterator + i == iterator)
 				return i;
 		}
 		return INVALID_INDEX;
 	}
-	//allocate_memory_block
-	//deallocate_
 
 
 private:

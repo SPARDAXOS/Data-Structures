@@ -19,7 +19,11 @@ public:
 
 	}
 	~Test() {
-		//std::cout << "Dtor" << std::endl;
+		std::cout << "Dtor" << std::endl;
+		this->number1 = 0;
+		this->number2 = 0;
+		this->number3 = 0;
+		this->number4 = 0;
 	}
 
 	Test(const Test& other) {
@@ -65,29 +69,40 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		Profiler MainProfiler;
 
 		Container<int> Array;
-		Array.push_back(1);
-		Array.push_back(2);
-		Array.push_back(3);
-		Array.push_back(4);
-		Array.push_back(5);
-		Array.push_back(6);
-		Array.push_back(7);
-		Array.push_back(8);
-		Array.push_back(9);
-		Array.push_back(10);
-		Array.push_back(11);
 		//Array.push_back(1);
 		//Array.push_back(2);
+		//Array.push_back(3);
 		//Array.push_back(4);
-		//Array.push_back(6);
-		//Array.push_back(8);
 		//Array.push_back(5);
+		//Array.push_back(6);
 		//Array.push_back(7);
+		//Array.push_back(8);
 		//Array.push_back(9);
 		//Array.push_back(10);
-		//Array.push_back(3);
 		//Array.push_back(11);
-		Sorting::MergeSort(Array.begin(), Array.end());
+		Array.push_back(8);
+		Array.push_back(1);
+		Array.push_back(4);
+		Array.push_back(6);
+		Array.push_back(2);
+		Array.push_back(5);
+		Array.push_back(3);
+		Array.push_back(9);
+		Array.push_back(10);
+		//Array.push_back(11);
+		Array.push_back(7);
+
+
+		Container<int> Array2(std::move(Array), Array.get_allocator());
+		Array2.push_back(8);
+		Array2.push_back(1);
+		Array2.push_back(4);
+		Array2.push_back(6);
+		Array2.push_back(2);
+		Array2 = std::move(Array); //STD::STATE_TRUE WORKS! TEST OTHER 2
+		//Sorting::MergeSort(Array.begin(), Array.end());
+		//Array.erase(Array.begin() + 1, Array.end()); //Needs testing 
+		//Array.clear();
 
 		std::vector<Test> vector;
 
