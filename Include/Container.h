@@ -204,7 +204,9 @@ public:
 	inline Reference operator[](SizeType index) const noexcept { return m_Iterator[index]; }
 
 public:
-	void push_back(ConstantReference element) {
+	constexpr inline void push_back(ConstantReference element) {
+
+		//Calls emplace_back 
 
 		if (m_Capacity == 0)
 			reserve(1);
@@ -217,10 +219,19 @@ public:
 		AllocatorTraits::construct(m_Allocator, m_Iterator + m_Size, element);
 		m_Size++;
 	}
+	constexpr inline void push_back(Type&& value) {
+		emplace_back(std::move(value));
+	}
 
 	template<class... args>
-	constexpr Reference emplace_back(args&&... arguments) {
+	constexpr inline Iterator emplace(Iterator position, args&&... arguments) {
 
+
+	}
+	template<class... args>
+	constexpr inline Reference emplace_back(args&&... arguments) {
+
+		//Calls emplace but at the back
 		if (m_Capacity == 0)
 			reserve(1);
 		else if (m_Size == m_Capacity)
@@ -254,6 +265,7 @@ public:
 		return m_Iterator[index];
 	}
 
+	//SETS THE SIZE TO 0 TOO! IT DESTROYS
 	constexpr inline void clear() noexcept {
 		if (m_Size == 0)
 			return;
@@ -306,7 +318,7 @@ public:
 
 		if (first == last)
 			return nullptr; //??
-
+		//std::distance //not hjere maybe 
 		if (first > last)
 			throw std::invalid_argument("Invalid range!");
 
