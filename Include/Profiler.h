@@ -58,7 +58,7 @@ public:
 
 public:
 	inline bool StartProfile(std::string_view id) {
-		if (FindUnit(id).has_value()) {
+		if (FindUnit(std::string(id)).has_value()) {
 			std::cout << "Profile unit with id " << id << " already exists!" << std::endl;
 			return false;
 		}
@@ -68,13 +68,14 @@ public:
 		return true;
 	}
 	[[nodiscard]] inline std::optional<Profile> EndProfile(std::string_view id) noexcept {
-		auto TargetUnit = FindUnit(id);
+		auto StoppingTime = m_Clock.now();
+		auto TargetUnit = FindUnit(std::string(id));
 		if (!TargetUnit.has_value()) {
 			std::cout << "Failed to find and end profiling unit designated " << id << std::endl;
 			return std::optional<Profile>(std::nullopt);
 		}
 
-		TargetUnit->m_EndTimepoint = m_Clock.now();
+		TargetUnit->m_EndTimepoint = StoppingTime;
 		TargetUnit->m_Duration = TargetUnit->m_EndTimepoint - TargetUnit->m_StartingTimepoint;
 
 		//m_ProfillingUnits.Erase(std::addressof(TargetUnit.value())); //UB    !!!!
@@ -82,13 +83,13 @@ public:
 		return TargetUnit;
 	}
 	[[nodiscard]] inline Profile QuickProfile(Predicate block, uint32 iterations = 1) {
-		if (!StartProfile("QuickProfile" + std::to_string(iterations)))
+		if (!StartProfile("QuickProfile"))
 			return Profile();
 
 		for (uint32 i = 0; i < iterations; i++)
 			block();
 
-		auto Results = EndProfile("QuickProfile" + std::to_string(iterations));
+		auto Results = EndProfile("QuickProfile");
 		if (!Results.has_value())
 			return Profile();
 
@@ -96,7 +97,7 @@ public:
 	}
 
 private:
-	inline std::optional<Profile> FindUnit(std::string_view id) const noexcept {
+	inline std::optional<Profile> FindUnit(std::string id) const noexcept {
 		for (auto& unit : m_ProfillingUnits) {
 			if (unit.m_ID == id)
 				return std::optional<Profile>(unit);

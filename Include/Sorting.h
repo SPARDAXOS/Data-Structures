@@ -53,9 +53,10 @@ namespace Sorting {
 					LowestValueIterator = AfterCursor;
 			}
 			if (*Cursor != *LowestValueIterator) {
-				auto Temp = *Cursor;
-				*Cursor = *LowestValueIterator;
-				*LowestValueIterator = Temp;
+				//auto Temp = *Cursor;
+				//*Cursor = *LowestValueIterator;
+				//*LowestValueIterator = Temp;
+				std::swap(*Cursor, *LowestValueIterator);
 			}
 		}
 	}
@@ -67,11 +68,8 @@ namespace Sorting {
 
 		for (Iterator Cursor = start; Cursor < end; Cursor++) {
 			for (Iterator AfterCursor = start; AfterCursor < end - 1; AfterCursor++) {
-				if (*AfterCursor > *(AfterCursor + 1)) {
-					auto Temp = *AfterCursor;
-					*AfterCursor = *(AfterCursor + 1);
-					*(AfterCursor + 1) = Temp;
-				}
+				if (*AfterCursor > *(AfterCursor + 1))
+					std::swap(*AfterCursor, *(AfterCursor + 1));
 			}
 		}
 	}
@@ -84,10 +82,7 @@ namespace Sorting {
 		for (Iterator Cursor = start; Cursor < end; Cursor++) {
 			Iterator AfterCursor = Cursor;
 			while (AfterCursor > start && *AfterCursor > *(AfterCursor - 1)) {
-				auto Temp = *AfterCursor;
-				*AfterCursor = *(AfterCursor - 1);
-				*(AfterCursor - 1) = Temp;
-
+				std::swap(*AfterCursor, *(AfterCursor - 1));
 				AfterCursor--;
 			}
 		}
@@ -123,46 +118,47 @@ namespace Sorting {
 	}
 
 	template<IsPointer Iterator>
-	constexpr inline void QuickSortPartition(Iterator start, Iterator end) noexcept {
+	constexpr inline Iterator QuickSortPartition(Iterator start, Iterator end) noexcept {
 
-		size_t TotalElements = std::distance(start, end + 1);
-		Iterator Pivot = start + (TotalElements - 1) / 2;
+		//size_t TotalElements = std::distance(start, end + 1);
+		auto Pivot = *start; //+ (TotalElements - 1) / 2;
 
-		Iterator LeftCursor = start;
-		Iterator RightCursor = end;
+		Iterator LeftCursor = start - 1;
+		Iterator RightCursor = end + 1;
 
-		while (LeftCursor <= RightCursor) {
+		while (true) {
 
-			if (*LeftCursor <= *Pivot)
+			while (*LeftCursor < Pivot)
 				LeftCursor++;
-			else if (*RightCursor >= *Pivot)
+			while (*RightCursor > Pivot)
 				RightCursor--;
-			else {
-				auto TempValue = *LeftCursor;
-				*LeftCursor = *Pivot;
-				*Pivot = TempValue;
 
-				//auto TempIterator = LeftCursor;
-				//LeftCursor = RightCursor;
-				//RightCursor = TempIterator;
+			if (LeftCursor >= RightCursor)
+				return RightCursor;
 
-				LeftCursor++;
-				RightCursor--;
-			}
+			std::swap(*LeftCursor, *RightCursor);
 		}
 	}
+	template<IsPointer Iterator>
+	constexpr inline void DoQuickSort(Iterator firstElement, Iterator lastElement) noexcept {
+
+		if (firstElement < lastElement) {
+			//size_t TotalElements = std::distance(start, end);
+			//Iterator MiddlePoint = start + (TotalElements - 1) / 2;
+
+			Iterator Pivot = QuickSortPartition(firstElement, lastElement);
+			DoQuickSort(firstElement, Pivot);
+			DoQuickSort(Pivot + 1, lastElement);
+		}
+	}
+
 
 	template<IsPointer Iterator>
 	constexpr inline void QuickSort(Iterator start, Iterator end) noexcept {
 		if (!ValidateRange(start, end))
 			return;
 
-		size_t TotalElements = std::distance(start, end);
-		Iterator MiddlePoint = start + (TotalElements - 1) / 2;
-
-		QuickSortPartition(start, MiddlePoint);
-		QuickSortPartition(MiddlePoint + 1, end);
-
+		DoQuickSort(start, end - 1);
 	}
 
 
@@ -170,7 +166,12 @@ namespace Sorting {
 	std::pair<Iterator, Iterator> MergePartition(Iterator start, Iterator end) noexcept {
 
 		int64 RangeSize = (end - start) + 1;
-		if (RangeSize == 1)
+		if (RangeSize == 2) {
+			if (*start > *end)
+				std::swap(*start, *end);
+			return std::pair<Iterator, Iterator>(start, end);
+		}
+		else if (RangeSize == 1)
 			return std::pair<Iterator, Iterator>(start, start); //Just go back with the one element really..
 		else {
 			int64 SplitPoint = RangeSize / 2;
@@ -184,29 +185,15 @@ namespace Sorting {
 			std::pair<Iterator, Iterator> Range1 = MergePartition(FirstHalfStart, FirstHalfEnd);
 			std::pair<Iterator, Iterator> Range2 = MergePartition(SecondHalfStart, SecondHalfEnd);
 
-			for (Iterator Cursor = Range1.first; Cursor < Range2.second + 1; Cursor++) { //+1
-				auto LowestValueIterator = Cursor;
-				for (Iterator SortCursor = Cursor; SortCursor < Range2.second + 1; SortCursor++) { //+1
-					if (*LowestValueIterator > *SortCursor)
-						LowestValueIterator = SortCursor;
-				}
-
-				if (LowestValueIterator == Cursor)
-					continue;
-
-				auto Temp = *Cursor;
-				*Cursor = *LowestValueIterator;
-				*LowestValueIterator = Temp;
-			}
-
+			InsertionSort(Range1.first, Range2.second + 1);
 			return std::pair<Iterator, Iterator>(start, end);
 		}
 	}
 
 	template<IsPointer Iterator>
 	constexpr inline void MergeSort(Iterator start, Iterator end) noexcept {
-		if (!ValidateRange(start, end))
-			return;
+		//if (!ValidateRange(start, end))
+		//	return;
 		
 		int64 RangeSize = end - start; 
 		int64 SplitPoint = RangeSize / 2;
@@ -220,20 +207,7 @@ namespace Sorting {
 		std::pair<Iterator, Iterator> Range1 = MergePartition(FirstHalfStart, FirstHalfEnd);
 		std::pair<Iterator, Iterator> Range2 = MergePartition(SecondHalfStart, SecondHalfEnd);
 
-		for (Iterator Cursor = Range1.first; Cursor < Range2.second + 1; Cursor++) { //+1
-			auto LowestValueIterator = Cursor;
-			for (Iterator SortCursor = Cursor + 1; SortCursor < Range2.second + 1; SortCursor++) { //+1
-				if (*LowestValueIterator > *SortCursor)
-					LowestValueIterator = SortCursor;
-			}
-
-			if (LowestValueIterator == Cursor)
-				continue;
-
-			auto Temp = *Cursor;
-			*Cursor = *LowestValueIterator;
-			*LowestValueIterator = Temp;
-		}
+		InsertionSort(Range1.first, Range2.second + 1);
 	}
 
 
