@@ -7,7 +7,6 @@
 #define PROFILER
 
 namespace {
-
 	using Timepoint = std::chrono::high_resolution_clock::time_point;
 	using Duration = std::chrono::high_resolution_clock::duration;
 	using Microseconds = std::chrono::microseconds;
@@ -39,14 +38,13 @@ public:
 	std::string_view m_ID;
 	Timepoint m_StartingTimepoint;
 	Timepoint m_EndTimepoint;
-	Duration m_Duration;
+	Duration m_Duration{ 0 };
 };
 
 
 class Profiler final {
 public:
 	using Predicate = std::function<void(void)>;
-
 
 public:
 	explicit Profiler() noexcept = default;
@@ -97,7 +95,6 @@ public:
 		return *Results;
 	}
 
-
 private:
 	inline std::optional<Profile> FindUnit(std::string_view id) const noexcept {
 		for (auto& unit : m_ProfillingUnits) {
@@ -108,7 +105,6 @@ private:
 		return std::optional<Profile>(std::nullopt);
 	}
 	
-
 private:
 	std::chrono::high_resolution_clock m_Clock;
 	Container<Profile> m_ProfillingUnits;

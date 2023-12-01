@@ -25,19 +25,14 @@ class Container final {
 	using Predicate = std::function<bool(const T&)>;
 	using AllocatorTraits = std::allocator_traits<CustomAllocator<Type>>;
 
-public:
-	//explicit Container() noexcept = default;
-	explicit Container(SizeType capacity) noexcept { reserve(capacity); }
-	explicit Container(SizeType capacity, Type element) noexcept { reserve(capacity); std::fill(begin(), begin() + m_Capacity - 1, element); }
-
-	//ctor
+public: //Ctors/Dtors
+	constexpr explicit Container(SizeType capacity) noexcept { reserve(capacity); }
+	constexpr explicit Container(SizeType capacity, Type element) noexcept { reserve(capacity); std::fill(begin(), begin() + m_Capacity - 1, element); }
 	constexpr Container() noexcept (noexcept(Allocator())) {};
-
 	constexpr explicit Container(const Allocator& allocator) noexcept
 		:	m_Allocator(allocator)
 	{ 
 	}
-
 	constexpr Container(SizeType count, ConstantReference value, const Allocator allocator = Allocator()) {
 		reserve(count);
 		for (unsigned int i = 0; i < count; i++)
@@ -48,26 +43,15 @@ public:
 		for (unsigned int i = 0; i < count; i++)
 			emplace_back({});
 	}
-
-	//EDITING THIS! THE ALLOCATOR PART
 	template<class InputIterator>
 	constexpr Container(InputIterator first, InputIterator last, const Allocator& allocator = Allocator()) {
-		m_Allocator = allocator;
+		m_Allocator = allocator; //EDITING THIS! THE ALLOCATOR PART
 		assign(first, last);
 	}
-
-
-
-
-
-
-
 	constexpr Container(std::initializer_list<Type> list, const Allocator& allocator = Allocator()) {
 		assign(list);
 	}
 	 
-
-
 	~Container() {
 		//Could be made into func destroy_and_deallocate()
 		clear();
@@ -75,7 +59,6 @@ public:
 		//m_Allocator.deallocate<Type>(m_Iterator, m_Capacity);
 		//std::cout << "Array Dtor" << std::endl;
 	}
-
 
 	//Copy Semantics
 	constexpr Container(const Container& other) //NOT TESTED
@@ -128,7 +111,6 @@ public:
 
 		return *this;
 	}
-
 
 	//Move Semantics
 	constexpr Container(Container&& other) noexcept //NOT TESTED
@@ -201,79 +183,149 @@ public:
 	}
 	//constexpr vector& operator=(std::initializer_list<T> ilist); //Last overload for assignment operator
 
-	inline Reference operator[](SizeType index) const noexcept { return m_Iterator[index]; }
-
-public:
-	constexpr inline void push_back(ConstantReference element) {
-
-		//Calls emplace_back 
-
-		if (m_Capacity == 0)
-			reserve(1);
-		else if (m_Size == m_Capacity)
-			reserve(m_Capacity * 2);
-
-		if (!std::copy_constructible<Type>)
-			throw std::invalid_argument("Type needs to be copy contructable!");
-
-		AllocatorTraits::construct(m_Allocator, m_Iterator + m_Size, element);
-		m_Size++;
-	}
-	constexpr inline void push_back(Type&& value) {
-		emplace_back(std::move(value));
-	}
-
-	template<class... args>
-	constexpr inline Iterator emplace(Iterator position, args&&... arguments) {
-
-
-	}
-	template<class... args>
-	constexpr inline Reference emplace_back(args&&... arguments) {
-
-		//Calls emplace but at the back
-		if (m_Capacity == 0)
-			reserve(1);
-		else if (m_Size == m_Capacity)
-			reserve(m_Capacity * 2);
-
-		AllocatorTraits::construct(m_Allocator, m_Iterator + m_Size, arguments...);
-		m_Size++;
-		return back();
-	}
-
-	constexpr inline void pop_back() {
-		if (m_Size == 0)
-			return;
-
-		if (std::destructible<Type>)
-			std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, m_Iterator + (m_Size - 1));
-
-		m_Size--;
-	}
-
+public: //Access
 	constexpr inline Reference at(SizeType index) {
 		if (index >= m_Size)
-			throw std::out_of_range("Index out of bounds");
+			throw std::out_of_range("Access Violation - " + index);
 
 		return m_Iterator[index];
 	}
 	constexpr inline ConstantReference at(SizeType index) const {
 		if (index >= m_Size)
-			throw std::out_of_range("Index out of bounds");
+			throw std::out_of_range("Access Violation - " + index);
 
 		return m_Iterator[index];
 	}
 
-	//SETS THE SIZE TO 0 TOO! IT DESTROYS
+	constexpr inline Iterator data() noexcept { return m_Iterator; }
+	constexpr inline ConstantIterator data() const noexcept { return m_Iterator; }
+
+	constexpr inline Reference front() noexcept { return m_Iterator[0]; }
+	constexpr inline ConstantReference front() const noexcept { return m_Iterator[0]; }
+
+	constexpr inline Reference back() noexcept { return m_Iterator[m_Size - 1]; }
+	constexpr inline ConstantReference back() const noexcept { return m_Iterator[m_Size - 1]; }
+
+	constexpr inline Reference operator[](SizeType index) noexcept { return m_Iterator[index]; } //Add compile-time assertion
+	constexpr inline ConstantReference operator[](SizeType index) const noexcept { return m_Iterator[index]; } //Add compile-time assertion
+
+public: //Insertion
+	constexpr inline void push_back(ConstantReference value) {
+		//DRY - Taking an iterator to a pos before reallocating invalidates it! fix this!
+		if (m_Capacity == 0)
+			reserve(1);
+		else if (m_Size == m_Capacity)
+			reserve(m_Capacity * 2);
+
+		emplace_back(value);
+	}
+	constexpr inline void push_back(Type&& value) {
+		//DRY - Taking an iterator to a pos before reallocating invalidates it! fix this!
+		if (m_Capacity == 0)
+			reserve(1);
+		else if (m_Size == m_Capacity)
+			reserve(m_Capacity * 2);
+
+		emplace_back(std::move(value));
+	}
+
+	template<class... args>
+	constexpr inline Iterator emplace(ConstantIterator position, args&&... arguments) { //Needs testing! position as argument to construct!
+		SizeType IndexPosition = 0;
+		if (position == end())
+			IndexPosition = m_Size;
+		else {
+			ConstantIterator Begin = begin();
+			IndexPosition = std::distance(position, Begin);
+		}
+
+		if (m_Capacity == 0)
+			reserve(1);
+		else if (m_Size == m_Capacity)
+			reserve(m_Capacity * 2);
+
+		//Throw on allocation failure - Attempt to deal with the exception
+
+		AllocatorTraits::construct(m_Allocator, m_Iterator + IndexPosition, arguments...);
+
+		m_Size++;
+		return m_Iterator + IndexPosition;
+	}
+	template<class... args>
+	constexpr inline Reference emplace_back(args&&... arguments) {
+		//DRY - Taking an iterator to a pos before reallocating invalidates it! fix this!
+		if (m_Capacity == 0)
+			reserve(1);
+		else if (m_Size == m_Capacity)
+			reserve(m_Capacity * 2);
+
+		emplace(end(), std::forward<args>(arguments)...);
+		return *(m_Iterator + (m_Size - 1));
+	}
+
+	constexpr inline Iterator insert(ConstantIterator position, ConstantReference value) {
+		return emplace(position, value);
+	}
+	constexpr inline Iterator insert(ConstantIterator position, Type&& value) {
+		return emplace(position, std::move(value));
+	}
+	constexpr inline Iterator insert(ConstantIterator position, SizeType count, ConstantReference value) {
+
+	}
+	template<class InputIterator>
+	constexpr Iterator insert(ConstantIterator position, InputIterator first, InputIterator last) {
+
+	}
+	constexpr Iterator insert(ConstantIterator position, std::initializer_list<Type> ilist) {
+
+	}
+
+	constexpr void assign(SizeType count, const Reference value) {
+		//THEY DO NOT INCREASE THE SIZE!!!! Emplace back actually does The replacement part is my only worry since it shouldnt emplace back but rather insert
+		//It replaces elements , from beginning only? size could stay still or increase
+		if (m_Size > 0)
+			clear(); //? wot It should do this! Replace instead!
+
+		for (SizeType i = 0; i < count; i++)
+			emplace_back(value);
+	}
+	template<class InputIt>
+	constexpr void assign(InputIt first, InputIt last) {
+		if (m_Size > 0)
+			clear();
+
+		auto Current = first;
+		while (Current != last + 1) {
+			emplace_back(*Current);
+			Current++;
+		}
+	}
+	constexpr void assign(std::initializer_list<Type> list) {
+		if (m_Size > 0)
+			clear();
+
+		for (SizeType i = 0; i < list.size(); i++)
+			emplace_back(list.begin() + i);
+	}
+
+public: //Removal
 	constexpr inline void clear() noexcept {
 		if (m_Size == 0)
 			return;
 
 		destroy(begin(), end());
 	}
+	constexpr inline void pop_back() {
+		if (m_Size == 0)
+			return;
 
+		destroy(end() - 1);
 
+		//if (std::destructible<Type>)
+		//	std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, m_Iterator + (m_Size - 1));
+		//
+		//m_Size--;
+	}
 	constexpr inline Iterator erase(ConstantIterator iterator) {
 		if (m_Size == 0)
 			return nullptr;
@@ -374,15 +426,7 @@ public:
 		return nullptr; //??
 	}
 
-
-public:
-	constexpr inline Iterator data() const noexcept { return m_Iterator; }
-	constexpr inline SizeType size() const noexcept { return m_Size; }
-	constexpr inline SizeType capacity() const noexcept { return m_Capacity; }
-	constexpr inline bool empty() const noexcept { return m_Size > 0; }
-	constexpr inline Reference front() const noexcept { return m_Iterator[0]; }
-	constexpr inline Reference back() const noexcept { return m_Iterator[m_Size - 1]; }
-
+public: //Iterators
 	constexpr inline Iterator begin() noexcept { return m_Iterator; }
 	constexpr inline ConstantIterator begin() const noexcept { return m_Iterator; }
 	constexpr inline ConstantIterator cbegin() const noexcept { return m_Iterator; }
@@ -399,17 +443,13 @@ public:
 	constexpr inline ConstantIterator end() const noexcept { return m_Iterator + m_Size; }
 	constexpr inline ConstantIterator cend() const noexcept { return m_Iterator + m_Size; }
 
-
-	constexpr inline CustomAllocator<Type> get_allocator() const noexcept { return m_Allocator; }
-
-	constexpr inline SizeType maxSize() const noexcept { return static_cast<SizeType>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
-
+public: //Capacity
 	constexpr inline void reserve(SizeType capacity) {
 		if (m_Capacity > capacity || m_Capacity == capacity) //The second check needs testing!
 			return;
 
 		//from here down
-		if (capacity > maxSize())
+		if (capacity > max_size())
 			throw std::length_error("Max allowed container size exceeded!");
 
 		Iterator NewBuffer = m_Allocator.allocate(sizeof(Type) * capacity);
@@ -464,45 +504,17 @@ public:
 		if (std::allocator_traits<CustomAllocator<Type>>::propagate_on_container_swap::value)
 			std::swap(m_Allocator, other.m_Allocator);
 	}
-
-
-
-	//THEY DO NOT INCREASE THE SIZE!!!! Emplace back actually does The replacement part is my only worry since it shouldnt emplace back but rather insert
-	//It replaces elements , from beginning only? size could stay still or increase
-	constexpr void assign(SizeType count, const Reference value) {
-		if (m_Size > 0)
-			clear(); //? wot It should do this! Replace instead!
-
-		for (SizeType i = 0; i < count; i++)
-			emplace_back(value);
-	}
-	template<class InputIt>
-	constexpr void assign(InputIt first, InputIt last) {
-		if (m_Size > 0)
-			clear();
-
-		auto Current = first;
-		while (Current != last + 1) {
-			emplace_back(*Current);
-			Current++;
-		}
-	}
-	constexpr void assign(std::initializer_list<Type> list) {
-		if (m_Size > 0)
-			clear();
-
-		for (SizeType i = 0; i < list.size(); i++)
-			emplace_back(list.begin() + i);
-	}
-
-
-	//Insert
-	//Emplace
 	//Resize
 
-private:
+	constexpr inline CustomAllocator<Type> get_allocator() const noexcept { return m_Allocator; }
+	constexpr inline SizeType max_size() const noexcept { return static_cast<SizeType>(pow(2, sizeof(Iterator) * 8) / sizeof(Type) - 1); }
+	constexpr inline SizeType capacity() const noexcept { return m_Capacity; }
+	constexpr inline SizeType size() const noexcept { return m_Size; }
+	constexpr inline bool empty() const noexcept { return m_Size > 0; }
+
+private: //Memory
 	constexpr inline Iterator allocate_memory_block(const SizeType capacity) {
-		if (capacity > maxSize())
+		if (capacity > max_size())
 			throw std::length_error("Max allowed container size exceeded!");
 
 		//No guarantee
@@ -562,7 +574,7 @@ private:
 			for (Iterator i = first; i < last; i++)
 				AllocatorTraits::destroy(m_Allocator, i);
 		}
-		std::cout << last - first;
+
 		m_Size -= last - first;
 	}
 
@@ -573,7 +585,7 @@ private:
 		m_Capacity = 0;
 	}
 
-private:
+private: //Helpers
 	constexpr inline int find_position(Iterator iterator) const noexcept {
 		if (iterator == begin())
 			return 0;
@@ -599,24 +611,23 @@ private:
 		return INVALID_INDEX;
 	}
 
-
 private:
 	Iterator m_Iterator = nullptr;
-	SizeType m_Size = 0;
 	SizeType m_Capacity = 0;
+	SizeType m_Size     = 0;
 	CustomAllocator<Type> m_Allocator;
 };
 
 
 
 namespace {
-
 	//Operators
 
 
 }
 
-
-
-
+namespace pmr {
+	template<class T>
+	using Container = ::Container<T, std::pmr::polymorphic_allocator<T>>;
+}
 #endif // !CONTAINER_H

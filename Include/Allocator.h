@@ -30,7 +30,7 @@ public:
 
 public:
 	CustomAllocator() noexcept {
-		std::cout << "My allocator ctor ctor was called" << std::endl;
+		//std::cout << "My allocator ctor was called" << std::endl;
 	}
 	~CustomAllocator() {
 		//if (m_Log.m_AllocatedMemory > m_Log.m_DeallocatedMemory && m_Log.m_Allocations != m_Log.m_Deallocations)
@@ -39,16 +39,15 @@ public:
 
 	template <class U>
 	inline CustomAllocator(const CustomAllocator<U>&) noexcept {
-		std::cout << "My allocator custom ctor was called" << std::endl;
+		//std::cout << "My allocator custom ctor was called" << std::endl;
 	}
 
+public:
 	template<class T, class... args>
 	constexpr inline void construct(T* address, args&&... arguments) {
-
 		std::construct_at(address, std::forward<args>(arguments)...);
 		m_Log.m_Constructions++;
 	}
-
 	template<class T>
 	constexpr inline void destroy(T* address) {
 		
@@ -56,8 +55,8 @@ public:
 		m_Log.m_Deconstructions++;
 	}
 
-	//Incosistency between allocate and deallocate with size
-
+public:
+	//Incosistency between allocate and deallocate with size usage.
 	[[nodiscard]] constexpr inline pointer allocate(const size_type size) {
 		if (size == 0)
 			return nullptr;
@@ -67,7 +66,7 @@ public:
 		return static_cast<pointer>(malloc(size));;
 	}
 	template<typename T>
-	inline constexpr void deallocate(T* address, size_type size) {
+	constexpr inline void deallocate(T* address, size_type size) {
 		if (!address)
 			return;
 
@@ -76,8 +75,12 @@ public:
 		free(address);
 	}
 
-	inline constexpr size_type max_size() const noexcept {
+public:
+	constexpr inline size_type max_size() const noexcept {
 		return std::numeric_limits<size_type>::max() / sizeof(value_type);
+	}
+	constexpr inline AllocatorLog GetLog() const noexcept {
+		return m_Log; 
 	}
 
 private:

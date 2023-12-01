@@ -19,7 +19,7 @@ public:
 
 	}
 	~Test() {
-		std::cout << "Dtor" << std::endl;
+		//std::cout << "Dtor" << std::endl;
 		this->number1 = 0;
 		this->number2 = 0;
 		this->number3 = 0;
@@ -68,85 +68,57 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
 		Profiler MainProfiler;
 
-		Container<int> Array;
-		//Array.push_back(1);
-		//Array.push_back(2);
-		//Array.push_back(3);
-		//Array.push_back(4);
-		//Array.push_back(5);
-		//Array.push_back(6);
-		//Array.push_back(7);
-		//Array.push_back(8);
-		//Array.push_back(9);
-		//Array.push_back(10);
-		//Array.push_back(11);
-		Array.push_back(8);
-		Array.push_back(1);
-		Array.push_back(4);
-		Array.push_back(6);
-		Array.push_back(2);
-		Array.push_back(5);
-		Array.push_back(3);
-		Array.push_back(9);
-		Array.push_back(10);
-		//Array.push_back(11);
-		Array.push_back(7);
+		Container<int> Array1;
+		Array1.push_back(8);
+		Array1.push_back(1);
+		Array1.push_back(4);
+		Array1.push_back(6);
+		Array1.push_back(2);
+		Array1.push_back(5);
+		Array1.push_back(3);
+		Array1.push_back(9);
+		Array1.push_back(10);
+		Array1.push_back(7);
+		Sorting::QuickSort(Array1.begin(), Array1.end());
 
 
-		Container<int> Array2(std::move(Array), Array.get_allocator());
-		Array2.push_back(8);
-		Array2.push_back(1);
-		Array2.push_back(4);
-		Array2.push_back(6);
-		Array2.push_back(2);
-		Array2 = std::move(Array); //STD::STATE_TRUE WORKS! TEST OTHER 2
-		//Sorting::MergeSort(Array.begin(), Array.end());
+		//Move Semantics Test
+		//Container<int> Array2(std::move(Array), Array.get_allocator());
+		//Array2.push_back(8);
+		//Array2.push_back(1);
+		//Array2.push_back(4);
+		//Array2.push_back(6);
+		//Array2.push_back(2);
+		//Array2 = std::move(Array); //STD::STATE_TRUE WORKS! TEST OTHER 2
 		//Array.erase(Array.begin() + 1, Array.end()); //Needs testing 
 		//Array.clear();
 
-		std::vector<Test> vector;
 
-
-
-		//DynamicArray<Test> Array2;
-
-		//Array.Emplaceback(1);
-		//Array.Emplaceback(2);
-		//Array.Emplaceback(3);
-		//Array.Emplaceback(4);
 
 
 
 
 		//STD VS CONTAINER
-		//MainProfiler.StartProfile("TestProfile");
-		//for (uint16 i = 0; i < 50000; i++)
-		//	vector.emplace_back(i);
-		//
-		//auto results = MainProfiler.EndProfile("TestProfile");
-		//std::cout << "Vector took " << results->AsMicroseconds() << " Mircoseconds" << std::endl;
-		//std::cout << "Vector took " << results->AsMilliseconds() << " Milliseconds" << std::endl;
-		//std::cout << "Vector took " << results->AsSeconds() << " Seconds" << std::endl;
-		//
-		//
-		//
-		//MainProfiler.StartProfile("TestProfile2");
-		//for (uint16 i = 0; i < 50000; i++)
-		//	Array.emplace_back(i);
-		//
-		//auto results2 = MainProfiler.EndProfile("TestProfile2");
-		//std::cout << "My container took " << results2->AsMicroseconds() << " Mircoseconds" << std::endl;
-		//std::cout << "My container took " << results2->AsMilliseconds() << " Milliseconds" << std::endl;
-		//std::cout << "My container took " << results2->AsSeconds() << " Seconds" << std::endl;
-
-
-		//Array.Pushback(4);
-		//Array.Pushback(3);
-		//Array.Pushback(2);
-		//Array.Pushback(1);
-		//Container<Test> Array2;
-		//Array2 = std::move(Array);
-		//Array2.Swap(Array);
+		std::vector<Test> Vector;
+		Container<Test> Container2;
+		MainProfiler.StartProfile("TestProfile");
+		for (uint16 i = 0; i < 50000; i++)
+			Vector.emplace_back(i);
+		
+		auto results = MainProfiler.EndProfile("TestProfile");
+		std::cout << "Vector took " << results->AsMicroseconds() << " (Mircoseconds)" << std::endl;
+		std::cout << "Vector took " << results->AsMilliseconds() << " (Milliseconds)" << std::endl;
+		std::cout << "Vector took " << results->AsSeconds() << " (Seconds) \n" << std::endl;
+		
+		
+		MainProfiler.StartProfile("TestProfile2");
+		for (uint16 i = 0; i < 50000; i++)
+			Container2.emplace_back(i);
+		
+		auto results2 = MainProfiler.EndProfile("TestProfile2");
+		std::cout << "Container took " << results2->AsMicroseconds() << " (Mircoseconds)" << std::endl;
+		std::cout << "Container took " << results2->AsMilliseconds() << " (Milliseconds)" << std::endl;
+		std::cout << "Container took " << results2->AsSeconds() << " (Seconds)" << std::endl;
 	}
 	catch (const std::exception& exception) {
 		std::cerr << exception.what() << std::endl;
