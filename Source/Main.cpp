@@ -69,24 +69,27 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		Profiler MainProfiler;
 
 		Container<int> Array1;
-		//Array1.push_back(8);
-		//Array1.push_back(1);
-		//Array1.push_back(4);
-		//Array1.push_back(6);
-		//Array1.push_back(2);
-		//Array1.push_back(5);
-		//Array1.push_back(3);
-		//Array1.push_back(9);
-		//Array1.push_back(10);
-		//Array1.push_back(7);
-		//Sorting::QuickSort(Array1.begin(), Array1.end());
+		Array1.push_back(8);
+		Array1.push_back(1);
+		Array1.push_back(4);
+		Array1.push_back(6);
+		Array1.push_back(2);
+		Array1.push_back(11);
+		Array1.push_back(5);
+		Array1.push_back(3);
+		Array1.push_back(9);
+		Array1.push_back(10);
+		Array1.push_back(7);
+		Sorting::SelectionSort(Array1.begin(), Array1.end());
 
 		for (uint32 i = 0; i < 5000; i++)
 			Array1.push_back(rand());
 
 		MainProfiler.StartProfile("Hello!");
-		Sorting::InsertionSort(Array1.begin(), Array1.end());
+		Sorting::MergeSort(Array1.begin(), Array1.end());
 		auto MergeResults = MainProfiler.EndProfile("Hello!");
+		//Add different results log for profiling with many iterations!
+
 
 		//auto Lambda = [&Array1]() {
 		//	Sorting::BubbleSort(Array1.begin(), Array1.end());
@@ -94,9 +97,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		//auto MergeResults = MainProfiler.QuickProfile(Lambda, 1);
 		
 
-		std::cout << "Merge took " << MergeResults->AsMicroseconds() << " (Mircoseconds)" << std::endl;
-		std::cout << "Merge took " << MergeResults->AsMilliseconds() << " (Milliseconds)" << std::endl;
-		std::cout << "Merge took " << MergeResults->AsSeconds() << " (Seconds) \n" << std::endl;
+		std::cout << "Merge took " << MergeResults->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
+		std::cout << "Merge took " << MergeResults->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
+		std::cout << "Merge took " << MergeResults->DurationAsSeconds() << " (Seconds) \n" << std::endl;
 
 		//Move Semantics Test
 		//Container<int> Array2(std::move(Array), Array.get_allocator());

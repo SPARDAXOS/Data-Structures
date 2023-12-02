@@ -30,15 +30,36 @@ public:
 	}
 
 public:
-	inline Microseconds AsMicroseconds() const noexcept { return std::chrono::duration_cast<Microseconds>(m_Duration); }
-	inline Milliseconds AsMilliseconds() const noexcept { return std::chrono::duration_cast<Milliseconds>(m_Duration); }
-	inline Seconds AsSeconds() const noexcept { return std::chrono::duration_cast<Seconds>(m_Duration); }
+	inline Microseconds DurationAsMicroseconds() const noexcept { return std::chrono::duration_cast<Microseconds>(m_Duration); }
+	inline Milliseconds DurationAsMilliseconds() const noexcept { return std::chrono::duration_cast<Milliseconds>(m_Duration); }
+	inline Seconds DurationAsSeconds() const noexcept { return std::chrono::duration_cast<Seconds>(m_Duration); }
 
 public:
 	std::string_view m_ID;
 	Timepoint m_StartingTimepoint;
 	Timepoint m_EndTimepoint;
 	Duration m_Duration{ 0 };
+};
+class DeepProfile final {
+public:
+	explicit DeepProfile() noexcept = default;
+	DeepProfile(Timepoint start)
+		: m_StartingTimepoint(start)
+	{
+	}
+
+public: //Helpers
+
+
+public:
+	Timepoint m_StartingTimepoint;
+	Timepoint m_EndTimepoint;
+	Duration m_Duration{ 0 };
+	Duration m_Average{ 0 };
+	Duration m_Median{ 0 };
+	Duration m_Max{ 0 };
+	Duration m_Min{ 0 };
+	Container<Profile> m_Profiles;
 };
 
 
@@ -86,8 +107,12 @@ public:
 		if (!StartProfile("QuickProfile"))
 			return Profile();
 
-		for (uint32 i = 0; i < iterations; i++)
+		//Calculate time accumulated from updating profile data such as profile insertions
+		Duration InsertionsTime;
+		for (uint32 i = 0; i < iterations; i++) {
 			block();
+
+		}
 
 		auto Results = EndProfile("QuickProfile");
 		if (!Results.has_value())
