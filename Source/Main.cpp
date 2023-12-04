@@ -68,6 +68,27 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
 		Profiler MainProfiler;
 
+
+		Graph GraphTest;
+		MainProfiler.StartProfile("Graph");
+		GraphTest.LoadGraph("Vendor/AssignmentNodes.txt");
+		auto GraphResults = MainProfiler.EndProfile("Graph");
+		
+		std::cout << "Graph loading took " << GraphResults->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
+		std::cout << "Graph loading took " << GraphResults->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
+		std::cout << "Graph loading took " << GraphResults->DurationAsSeconds() << " (Seconds) \n" << std::endl;
+		
+
+
+		MainProfiler.StartProfile("Pathfinding");
+		auto Path = GraphTest.FindPath(*GraphTest.m_Start, *GraphTest.m_Target);
+		auto PathfindingResults = MainProfiler.EndProfile("Pathfinding");
+
+		std::cout << "Pathfinding took " << PathfindingResults->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
+		std::cout << "Pathfinding took " << PathfindingResults->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
+		std::cout << "Pathfinding took " << PathfindingResults->DurationAsSeconds() << " (Seconds) \n" << std::endl;
+
+
 		Container<int> Array1;
 		Array1.push_back(8);
 		Array1.push_back(1);
@@ -80,9 +101,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		Array1.push_back(9);
 		Array1.push_back(10);
 		Array1.push_back(7);
-		Sorting::SelectionSort(Array1.begin(), Array1.end());
+		//Sorting::SelectionSort(Array1.begin(), Array1.end());
 
-		for (uint32 i = 0; i < 5000; i++)
+		for (uint32 i = 0; i < 1000; i++)
 			Array1.push_back(rand());
 
 		MainProfiler.StartProfile("Hello!");
