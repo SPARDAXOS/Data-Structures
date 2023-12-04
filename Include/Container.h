@@ -295,6 +295,8 @@ public: //Insertion
 		//if (m_Size > 0)
 		//	clear(); //? wot It should do this! Replace instead!
 
+		//Destroy then remove if size is the same!
+
 		if (count > m_Capacity)
 			reserve(count);
 
@@ -306,6 +308,8 @@ public: //Insertion
 	constexpr void assign(InputIt first, InputIt last) {
 		//if (m_Size > 0)
 		//	clear();
+
+		//Destroy then remove if size is the same!
 
 		SizeType size = std::distance(first, last);
 		if (size > m_Capacity)
@@ -321,6 +325,9 @@ public: //Insertion
 	constexpr void assign(std::initializer_list<Type> list) {
 		//if (m_Size > 0)
 		//	clear();
+
+		//Destroy then remove if size is the same!
+
 		if (list.size() > m_Capacity)
 			reserve(list.size());
 
@@ -341,11 +348,6 @@ public: //Removal
 			return;
 
 		destroy(end() - 1);
-
-		//if (std::destructible<Type>)
-		//	std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, m_Iterator + (m_Size - 1));
-		//
-		//m_Size--;
 	}
 	constexpr inline Iterator erase(ConstantIterator iterator) {
 		if (m_Size == 0)

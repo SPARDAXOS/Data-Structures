@@ -57,7 +57,7 @@ public:
 	Vector2 m_Position{ 0.0f, 0.0f };
 	//std::vector<std::pair<GraphNode&, ConnectionDirection>> m_Neighbours;
 
-	std::vector<GraphNode*> m_Neighbours;
+	Container<GraphNode*> m_Neighbours;
 
 public:
 	GraphNode* m_ParentNode = nullptr;
@@ -133,9 +133,9 @@ public:
 			TargetFile.close();
 		}
 	}
-	std::vector<GraphNode> FindPath(GraphNode& start, GraphNode& target)  noexcept {
+	Container<GraphNode> FindPath(GraphNode& start, GraphNode& target, bool visualization = false)  noexcept {
 
-		std::vector<GraphNode> Path;
+		Container<GraphNode> Path;
 		if (start == target || m_Nodes.size() == 0) {
 			Path.emplace_back(start);
 			return Path;
@@ -190,7 +190,41 @@ public:
 				Path.emplace_back(*CurrentGraphNode);
 			}
 
-			//ReversePath
+			if (visualization) {
+				float LastY = 0;
+				float LastX = 0;
+				for (auto& node : m_Nodes) {
+					if (LastY != node.m_Position.y) {
+						std::cout << std::endl;
+						if (LastX + 1 == node.m_Position.x)
+							std::cout << "O";
+						else {
+							float current = 0;
+							while (current != node.m_Position.x) {
+								std::cout << "X";
+								current++;
+								//If looped to new line!
+							}
+						}
+					}
+					else if (LastX + 1 == node.m_Position.x || LastX == node.m_Position.x) {
+						std::cout << "O";
+					}
+					else if (LastX + 1 != node.m_Position.x) {
+						float current = LastX + 1;
+						while (current != node.m_Position.x) {
+							std::cout << "X";
+							current++;
+							//If looped to new line!
+						}
+					}
+
+					LastY = node.m_Position.y;
+					LastX = node.m_Position.x;
+				}
+
+				std::cout << "\n" << std::endl;
+			}
 		}
 
 		return Path;
@@ -382,11 +416,11 @@ public:
 	GraphNode* m_Target = nullptr;
 
 private:
-	std::vector<GraphNode*> m_OpenList;
-	std::vector<GraphNode*> m_ClosedList;
+	Container<GraphNode*> m_OpenList;
+	Container<GraphNode*> m_ClosedList;
 
 private:
-	std::vector<GraphNode> m_Nodes;
+	Container<GraphNode> m_Nodes;
 	int m_IDCounter = 0;
 	float m_LineCursor = 0.0f;
 };

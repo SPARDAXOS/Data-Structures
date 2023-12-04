@@ -81,7 +81,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 
 
 		MainProfiler.StartProfile("Pathfinding");
-		auto Path = GraphTest.FindPath(*GraphTest.m_Start, *GraphTest.m_Target);
+		auto Path = GraphTest.FindPath(*GraphTest.m_Start, *GraphTest.m_Target, true);
 		auto PathfindingResults = MainProfiler.EndProfile("Pathfinding");
 
 		std::cout << "Pathfinding took " << PathfindingResults->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
@@ -103,11 +103,11 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		Array1.push_back(7);
 		//Sorting::SelectionSort(Array1.begin(), Array1.end());
 
-		for (uint32 i = 0; i < 1000; i++)
-			Array1.push_back(rand());
+		for (uint32 i = 0; i < 5000; i++)
+			Array1.push_back(i);
 
 		MainProfiler.StartProfile("Hello!");
-		Sorting::MergeSort(Array1.begin(), Array1.end());
+		Sorting::QuickSort(Array1.begin(), Array1.end());
 		auto MergeResults = MainProfiler.EndProfile("Hello!");
 		//Add different results log for profiling with many iterations!
 
