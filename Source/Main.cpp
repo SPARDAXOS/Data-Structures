@@ -89,6 +89,10 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		std::cout << "Pathfinding took " << PathfindingResults->DurationAsSeconds() << " (Seconds) \n" << std::endl;
 
 
+		auto Lambda = [&GraphTest](){ GraphTest.FindPath(*GraphTest.m_Start, *GraphTest.m_Target, true); };
+		auto Results = MainProfiler.RunIterativeProfile(Lambda, 9);
+		std::cout << "Iterative profile took " << Results.m_Average << " (Mircoseconds)" << std::endl;
+
 		Container<int> Array1;
 		Array1.push_back(8);
 		Array1.push_back(1);

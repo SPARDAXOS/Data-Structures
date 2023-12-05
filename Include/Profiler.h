@@ -1,5 +1,6 @@
 #include "Container.h"
 #include "Utility.h"
+#include "Sorting.h"
 #include <chrono>
 #include <iostream>
 
@@ -7,6 +8,7 @@
 #define PROFILER
 
 namespace {
+
 	using Timepoint = std::chrono::high_resolution_clock::time_point;
 	using Duration = std::chrono::high_resolution_clock::duration;
 	using Microseconds = std::chrono::microseconds;
@@ -29,6 +31,13 @@ public:
 	{
 	}
 
+	bool operator<(const Profile& other) const noexcept {
+		return this->m_Duration < other.m_Duration;
+	}
+	bool operator>(const Profile& other) const noexcept {
+		return this->m_Duration > other.m_Duration;
+	}
+
 public:
 	inline Microseconds DurationAsMicroseconds() const noexcept { return std::chrono::duration_cast<Microseconds>(m_Duration); }
 	inline Milliseconds DurationAsMilliseconds() const noexcept { return std::chrono::duration_cast<Milliseconds>(m_Duration); }
@@ -40,16 +49,18 @@ public:
 	Timepoint m_EndTimepoint;
 	Duration m_Duration{ 0 };
 };
-class DeepProfile final {
+class IterativeProfile final {
 public:
-	explicit DeepProfile() noexcept = default;
-	DeepProfile(Timepoint start)
+	IterativeProfile() noexcept = default;
+	IterativeProfile(Timepoint start)
 		: m_StartingTimepoint(start)
 	{
 	}
 
-public: //Helpers
-
+public:
+	inline Microseconds DurationAsMicroseconds() const noexcept { return std::chrono::duration_cast<Microseconds>(m_Duration); }
+	inline Milliseconds DurationAsMilliseconds() const noexcept { return std::chrono::duration_cast<Milliseconds>(m_Duration); }
+	inline Seconds DurationAsSeconds() const noexcept { return std::chrono::duration_cast<Seconds>(m_Duration); }
 
 public:
 	Timepoint m_StartingTimepoint;
@@ -59,7 +70,8 @@ public:
 	Duration m_Median{ 0 };
 	Duration m_Max{ 0 };
 	Duration m_Min{ 0 };
-	Container<Profile> m_Profiles;
+	uint32 m_Count{ 0 };
+	std::vector<Profile> m_Profiles;
 };
 
 
@@ -103,28 +115,52 @@ public:
 		m_RunningProfiles--;
 		return TargetUnit;
 	}
-	[[nodiscard]] inline Profile QuickProfile(Predicate block, uint32 iterations = 1) {
-		if (!StartProfile("QuickProfile")) //Dont use these! unnecessary lookup
-			return Profile();
+	[[nodiscard]] inline IterativeProfile RunIterativeProfile(Predicate block, uint32 iterations = 1) {
+		if (iterations == 0)
+			return {};
 
-		//m_ProfillingUnits.emplace_back(id, m_Clock.now());
-		//m_RunningProfiles++;
-		//Do A*
-
-		//Calculate time accumulated from updating profile data such as profile insertions
-		//Duration InsertionsTime;
+		IterativeProfile ResultsProfile;
+		ResultsProfile.m_Count = iterations;
+		ResultsProfile.m_Profiles.reserve(iterations);
+		ResultsProfile.m_StartingTimepoint = m_Clock.now();
+		
 		for (uint32 i = 0; i < iterations; i++) {
+			Profile NewProfile;
+			NewProfile.m_StartingTimepoint = m_Clock.now();
 			block();
-			//Update min and max and also deduct time taken to update them from overall profile time
+			NewProfile.m_EndTimepoint = m_Clock.now();
+			NewProfile.m_Duration = NewProfile.m_EndTimepoint - NewProfile.m_StartingTimepoint;
+			ResultsProfile.m_Duration += NewProfile.m_Duration;
+			ResultsProfile.m_Profiles.emplace_back(NewProfile);
+
+			if (i == 0) {
+				ResultsProfile.m_Max = NewProfile.m_Duration;
+				ResultsProfile.m_Min = NewProfile.m_Duration;
+				continue;
+			}
+
+			if (ResultsProfile.m_Min > NewProfile.m_Duration)
+				ResultsProfile.m_Min = NewProfile.m_Duration;
+			if (ResultsProfile.m_Max < NewProfile.m_Duration)
+				ResultsProfile.m_Max = NewProfile.m_Duration;
 		}
 
-		auto Results = EndProfile("QuickProfile");
-		if (!Results.has_value())
-			return Profile();
+		ResultsProfile.m_EndTimepoint = m_Clock.now();
+		ResultsProfile.m_Average = ResultsProfile.m_Duration / ResultsProfile.m_Profiles.size();
 
-		//Calc median and average
+		//TEST MERGE SORT !!!!!B IT DIDNT WORK HERE I THINK? Quick works. Expand to actually check the right number!!!
+		Sorting::MergeSort(ResultsProfile.m_Profiles.begin()._Ptr, ResultsProfile.m_Profiles.end()._Ptr);
+		Sorting::QuickSort(ResultsProfile.m_Profiles.begin()._Ptr, ResultsProfile.m_Profiles.end()._Ptr);
+		if (ResultsProfile.m_Profiles.size() % 2 == 1) {
+			ResultsProfile.m_Median = ResultsProfile.m_Profiles[(ResultsProfile.m_Profiles.size() + 1) / 2].m_Duration; //IF THEY ARE SORTED!
+		}
+		else if (ResultsProfile.m_Profiles.size() % 2 == 0) {
 
-		return *Results;
+		}
+
+		//Calc median
+
+		return ResultsProfile;
 	}
 
 private:
