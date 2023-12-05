@@ -103,7 +103,7 @@ public:
 		m_RunningProfiles--;
 		return TargetUnit;
 	}
-	[[nodiscard]] inline Profile QuickProfile(Predicate block, uint32 iterations = 1) const noexcept {
+	[[nodiscard]] inline Profile QuickProfile(Predicate block, uint32 iterations = 1) {
 		if (!StartProfile("QuickProfile")) //Dont use these! unnecessary lookup
 			return Profile();
 
@@ -112,7 +112,7 @@ public:
 		//Do A*
 
 		//Calculate time accumulated from updating profile data such as profile insertions
-		Duration InsertionsTime;
+		//Duration InsertionsTime;
 		for (uint32 i = 0; i < iterations; i++) {
 			block();
 			//Update min and max and also deduct time taken to update them from overall profile time

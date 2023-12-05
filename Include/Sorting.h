@@ -197,7 +197,7 @@ namespace Sorting {
 			std::pair<Iterator, Iterator> Range1 = MergePartition(FirstHalfStart, FirstHalfEnd);
 			std::pair<Iterator, Iterator> Range2 = MergePartition(SecondHalfStart, SecondHalfEnd);
 
-			QuickSort(Range1.first, Range2.second + 1);
+			InsertionSort(Range1.first, Range2.second + 1);
 			return std::pair<Iterator, Iterator>(start, end);
 		}
 	}
@@ -219,7 +219,7 @@ namespace Sorting {
 		std::pair<Iterator, Iterator> Range1 = MergePartition(FirstHalfStart, FirstHalfEnd);
 		std::pair<Iterator, Iterator> Range2 = MergePartition(SecondHalfStart, SecondHalfEnd);
 
-		QuickSort(Range1.first, Range2.second + 1);
+		InsertionSort(Range1.first, Range2.second + 1);
 	}
 
 

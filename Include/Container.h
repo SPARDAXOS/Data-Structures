@@ -62,11 +62,17 @@ public: //Ctors/Dtors
 
 	//Copy Semantics
 	constexpr Container(const Container& other) //NOT TESTED
-		: m_Size(other.m_Size), m_Allocator(AllocatorTraits::select_on_container_copy_construction(other.m_Allocator))
+		:	m_Allocator(AllocatorTraits::select_on_container_copy_construction(other.m_Allocator))
 	{
-		//Could be made into func
-		reserve(m_Size);
-		std::copy(other.begin(), other.end(), m_Iterator); //In the example, they are constructed in place
+		//Could be made into func - Test this. It was bugged
+
+		reserve(other.m_Size); //Cant set size in initializer list cause im calling reserve which should be allocate
+		m_Size = other.m_Size;
+		for (unsigned int i = 0; i < m_Size; i++)
+			AllocatorTraits::construct(m_Allocator, m_Iterator + i, std::move(*(other.m_Iterator + i)));
+
+		//std::memmove(m_Iterator, other.data(), m_Size * sizeof(Type)); //Doesnt invoke copy constructor
+		//std::copy(other.begin(), other.end(), m_Iterator); //In the example, they are constructed in place
 	}
 	constexpr Container(const Container& other, const Allocator& allocator)  //NOT TESTED
 		: m_Size(other.m_Size), m_Allocator(allocator)
@@ -83,13 +89,15 @@ public: //Ctors/Dtors
 		//Otherwise, dont dealloc old mem and see if you can reuse it otherwise make it fit
 		//Copy elements
 
+		//Test this!!
+
 		clear();
 
 		if constexpr (AllocatorTraits::propagate_on_container_copy_assignment::value) {
 
 
 			auto OldAllocator = this->m_Allocator;
-			this->m_Allocator = other->m_Allocator;
+			this->m_Allocator = other.m_Allocator;
 			if (this->m_Allocator != OldAllocator) {
 				OldAllocator.deallocate<Type>(this->m_Iterator, this->m_Capacity);
 
@@ -104,10 +112,10 @@ public: //Ctors/Dtors
 
 		if (other.size() > this->m_Capacity) {
 			reserve(other.capacity());
-			assign(other.begin(), other.end());
+			assign(other.begin(), other.end()); //This
 		}
 		else
-			assign(other.begin(), other.end());
+			assign(other.begin(), other.end()); //This
 
 		return *this;
 	}
@@ -245,7 +253,8 @@ public: //Insertion
 			reserve(m_Capacity * 2);
 
 		//Throw on allocation failure - Attempt to deal with the exception
-
+		//Call dtor in case there was already something there!
+		//destroy(position); //Not sure!
 		AllocatorTraits::construct(m_Allocator, m_Iterator + IndexPosition, arguments...);
 
 		m_Size++;
@@ -283,29 +292,48 @@ public: //Insertion
 	constexpr void assign(SizeType count, const Reference value) {
 		//THEY DO NOT INCREASE THE SIZE!!!! Emplace back actually does The replacement part is my only worry since it shouldnt emplace back but rather insert
 		//It replaces elements , from beginning only? size could stay still or increase
-		if (m_Size > 0)
-			clear(); //? wot It should do this! Replace instead!
+		//if (m_Size > 0)
+		//	clear(); //? wot It should do this! Replace instead!
 
+		//Destroy then remove if size is the same!
+
+		if (count > m_Capacity)
+			reserve(count);
+
+		//Call dtor on existing elements first!
 		for (SizeType i = 0; i < count; i++)
-			emplace_back(value);
+			emplace(m_Iterator + i, value);
 	}
 	template<class InputIt>
 	constexpr void assign(InputIt first, InputIt last) {
-		if (m_Size > 0)
-			clear();
+		//if (m_Size > 0)
+		//	clear();
 
-		auto Current = first;
-		while (Current != last + 1) {
-			emplace_back(*Current);
-			Current++;
+		//Destroy then remove if size is the same!
+
+		SizeType size = std::distance(first, last);
+		if (size > m_Capacity)
+			reserve(size);
+
+		//Call dtor on existing elements first!
+		SizeType Counter = 0;
+		while (first + Counter < last) {
+			insert(begin() + Counter, *(first + Counter));
+			Counter++;
 		}
 	}
 	constexpr void assign(std::initializer_list<Type> list) {
-		if (m_Size > 0)
-			clear();
+		//if (m_Size > 0)
+		//	clear();
 
+		//Destroy then remove if size is the same!
+
+		if (list.size() > m_Capacity)
+			reserve(list.size());
+
+		//Call dtor on existing elements first!
 		for (SizeType i = 0; i < list.size(); i++)
-			emplace_back(list.begin() + i);
+			emplace(m_Iterator + i, list.begin() + i);
 	}
 
 public: //Removal
@@ -320,11 +348,6 @@ public: //Removal
 			return;
 
 		destroy(end() - 1);
-
-		//if (std::destructible<Type>)
-		//	std::allocator_traits<CustomAllocator<Type>>::destroy(m_Allocator, m_Iterator + (m_Size - 1));
-		//
-		//m_Size--;
 	}
 	constexpr inline Iterator erase(ConstantIterator iterator) {
 		if (m_Size == 0)
@@ -343,7 +366,7 @@ public: //Removal
 			return m_Iterator;
 		}
 		else {
-			int Index = find_index(iterator);
+			int Index = find_position(iterator);
 			if (Index == -1)
 				throw std::invalid_argument("Iterator out of bounds!");
 
@@ -552,6 +575,15 @@ private: //Memory
 	}
 
 	constexpr inline void destroy(Iterator target) noexcept {
+		if (!target)
+			return;
+
+		if (std::destructible<Type>) // Will pass check even if fundemental
+			AllocatorTraits::destroy(m_Allocator, target);
+
+		m_Size--;
+	}
+	constexpr inline void destroy(ConstantIterator target) noexcept {
 		if (!target)
 			return;
 
