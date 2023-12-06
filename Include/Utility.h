@@ -67,7 +67,7 @@ namespace {
 
 	static inline float Distance(const Vector2& lhs, const Vector2& rhs) noexcept {
 		Vector2 ResultingVector = rhs - lhs;
-		return sqrtf(powf(ResultingVector.x, 2) + powf(ResultingVector.y, 2) * 1.0f);
+		return sqrtf(((ResultingVector.x * ResultingVector.x) + (ResultingVector.y * ResultingVector.y)) * 1.0f);
 	}
 
 

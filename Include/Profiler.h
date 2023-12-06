@@ -71,7 +71,7 @@ public:
 	Duration m_Max{ 0 };
 	Duration m_Min{ 0 };
 	uint32 m_Count{ 0 };
-	std::vector<Profile> m_Profiles;
+	Merigold::Container<Profile> m_Profiles;
 };
 
 
@@ -148,17 +148,15 @@ public:
 		ResultsProfile.m_EndTimepoint = m_Clock.now();
 		ResultsProfile.m_Average = ResultsProfile.m_Duration / ResultsProfile.m_Profiles.size();
 
-		//TEST MERGE SORT !!!!!B IT DIDNT WORK HERE I THINK? Quick works. Expand to actually check the right number!!!
-		Sorting::MergeSort(ResultsProfile.m_Profiles.begin()._Ptr, ResultsProfile.m_Profiles.end()._Ptr);
-		Sorting::QuickSort(ResultsProfile.m_Profiles.begin()._Ptr, ResultsProfile.m_Profiles.end()._Ptr);
-		if (ResultsProfile.m_Profiles.size() % 2 == 1) {
+		Sorting::QuickSort(ResultsProfile.m_Profiles.begin(), ResultsProfile.m_Profiles.end());
+		if (ResultsProfile.m_Profiles.size() % 2 == 1)
 			ResultsProfile.m_Median = ResultsProfile.m_Profiles[(ResultsProfile.m_Profiles.size() + 1) / 2].m_Duration; //IF THEY ARE SORTED!
-		}
 		else if (ResultsProfile.m_Profiles.size() % 2 == 0) {
-
+			//Get average of the two in the middle
+			auto Element1 = ResultsProfile.m_Profiles[ResultsProfile.m_Profiles.size() / 2].m_Duration;
+			auto Element2 = ResultsProfile.m_Profiles[(ResultsProfile.m_Profiles.size() / 2) + 1].m_Duration;
+			ResultsProfile.m_Median = (Element1 + Element2) / 2;
 		}
-
-		//Calc median
 
 		return ResultsProfile;
 	}
@@ -175,7 +173,7 @@ private:
 	
 private:
 	std::chrono::high_resolution_clock m_Clock;
-	Container<Profile> m_ProfillingUnits;
+	Merigold::Container<Profile> m_ProfillingUnits;
 	uint32 m_RunningProfiles = 0;
 };
 #endif // !PROFILER

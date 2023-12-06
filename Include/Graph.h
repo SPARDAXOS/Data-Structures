@@ -55,9 +55,7 @@ public:
 	int m_ID{ -1 };
 	bool m_Visited{ false };
 	Vector2 m_Position{ 0.0f, 0.0f };
-	//std::vector<std::pair<GraphNode&, ConnectionDirection>> m_Neighbours;
-
-	Container<GraphNode*> m_Neighbours;
+	std::vector<std::pair<GraphNode*, ConnectionDirection>> m_Neighbours;
 
 public:
 	GraphNode* m_ParentNode = nullptr;
@@ -133,19 +131,16 @@ public:
 			TargetFile.close();
 		}
 	}
-	Container<GraphNode> FindPath(GraphNode& start, GraphNode& target, bool visualization = false)  noexcept {
-
-		Container<GraphNode> Path;
+	std::vector<GraphNode> FindPath(GraphNode& start, GraphNode& target, bool visualization = false)  noexcept {
+		std::vector<GraphNode> Path;
 		if (start == target || m_Nodes.size() == 0) {
 			Path.emplace_back(start);
 			return Path;
 		}
 
-
 		ClearAllLists();
 		ClearAllNodes();
 
-		//Prepare first node
 		start.CalculateGCost(start);
 		start.CalculateHCost(target);
 		start.CalculateFCost();
@@ -168,7 +163,7 @@ public:
 			m_ClosedList.push_back(CurrentNode); //Need to get a ref to the actual thing!
 			RemoveFromOpenedList(*CurrentNode);
 			for (uint32 index = 0; index < CurrentNode->m_Neighbours.size(); index++) {
-				auto AdjacentGraphNode = CurrentNode->m_Neighbours[index];
+				auto AdjacentGraphNode = CurrentNode->m_Neighbours[index].first;
 				if (IsInOpenList(*AdjacentGraphNode) || IsInClosedList(*AdjacentGraphNode))
 					continue;
 				else {
@@ -189,38 +184,57 @@ public:
 				CurrentGraphNode = CurrentGraphNode->m_ParentNode;
 				Path.emplace_back(*CurrentGraphNode);
 			}
-
+	
 			if (visualization) {
-				float LastY = 0;
+				std::cout << "\n" << std::endl;
+				std::cout << "Path Found: " << std::endl;
+
+				int CursorX = 0;
 				float LastX = 0;
+				bool IsPathNode = false;
+
 				for (auto& node : m_Nodes) {
-					if (LastY != node.m_Position.y) {
+					IsPathNode = false;
+					for (auto& element : Path) {
+						if (node == element) {
+							IsPathNode = true;
+							break;
+						}
+					}
+
+					if (CursorX >= 20) {
+						CursorX = 0;
+						LastX = -1.0f;
 						std::cout << std::endl;
-						if (LastX + 1 == node.m_Position.x)
+					}
+					if (LastX == node.m_Position.x || LastX + 1 == node.m_Position.x) {
+						if (!IsPathNode)
 							std::cout << "O";
-						else {
-							float current = 0;
-							while (current != node.m_Position.x) {
-								std::cout << "X";
-								current++;
-								//If looped to new line!
+						else
+							std::cout << " ";
+					}
+					else {
+						float Current = LastX + 1;
+						while (Current != node.m_Position.x) {
+							std::cout << "X";
+							Current++;
+							CursorX++;
+							if (CursorX >= 20) {
+								CursorX = 0;
+								Current = 0.0f;
+								LastX = 0.0f;
+								std::cout << std::endl;
 							}
 						}
-					}
-					else if (LastX + 1 == node.m_Position.x || LastX == node.m_Position.x) {
-						std::cout << "O";
-					}
-					else if (LastX + 1 != node.m_Position.x) {
-						float current = LastX + 1;
-						while (current != node.m_Position.x) {
-							std::cout << "X";
-							current++;
-							//If looped to new line!
-						}
-					}
 
-					LastY = node.m_Position.y;
+						if (!IsPathNode)
+							std::cout << "O";
+						else
+							std::cout << " ";
+					}
+						
 					LastX = node.m_Position.x;
+					CursorX++;
 				}
 
 				std::cout << "\n" << std::endl;
@@ -235,8 +249,8 @@ private:
 		target.m_Visited = true;
 		std::cout << "Visited Node " << target.m_ID << std::endl;
 		for (auto& neighbour : target.m_Neighbours) {
-			if (!neighbour->m_Visited)
-				DepthFirst(*neighbour);
+			if (!neighbour.first->m_Visited)
+				DepthFirst(*neighbour.first);
 		}
 	}
 	void BreadthFirst(GraphNode& startingNode) const {
@@ -246,9 +260,9 @@ private:
 		GraphNode* CurrentNode = &startingNode;
 		while (Nodes.size() != 0) {
 			for (auto& neighbour : CurrentNode->m_Neighbours) {
-				if (!neighbour->m_Visited) {
-					neighbour->m_Visited = true;
-					Nodes.push(neighbour);
+				if (!neighbour.first->m_Visited) {
+					neighbour.first->m_Visited = true;
+					Nodes.push(neighbour.first);
 				}
 			}
 
@@ -298,8 +312,8 @@ private:
 				if (CanConnect) {
 					PreviousNode = &m_Nodes.back();
 					NewNode = &AddNode({ X , m_LineCursor });
-					NewNode->m_Neighbours.push_back(PreviousNode);
-					PreviousNode->m_Neighbours.push_back(NewNode);
+					NewNode->m_Neighbours.push_back({ PreviousNode, GraphNode::ConnectionDirection::LEFT });
+					PreviousNode->m_Neighbours.push_back({ NewNode, GraphNode::ConnectionDirection::RIGHT });
 				}
 				else
 					NewNode = &AddNode({ X , m_LineCursor });
@@ -327,8 +341,8 @@ private:
 				auto LowerNode = FindNode({ static_cast<float>(i), m_LineCursor - 1 });
 
 				if (UpperNode && LowerNode) {
-					UpperNode->m_Neighbours.push_back(LowerNode);
-					LowerNode->m_Neighbours.push_back(UpperNode);
+					UpperNode->m_Neighbours.push_back({ LowerNode, GraphNode::ConnectionDirection::DOWN });
+					LowerNode->m_Neighbours.push_back({ UpperNode, GraphNode::ConnectionDirection::UP });
 				}
 			}
 		}
@@ -343,8 +357,8 @@ private:
 				auto LastNode = FindNode({ static_cast<float>(i), m_LineCursor - 3 });
 
 				if (UpperNode && LastNode) {
-					UpperNode->m_Neighbours.push_back(LastNode);
-					LastNode->m_Neighbours.push_back(UpperNode);
+					UpperNode->m_Neighbours.push_back({ LastNode,  GraphNode::ConnectionDirection::UP });
+					LastNode->m_Neighbours.push_back({ UpperNode, GraphNode::ConnectionDirection::DOWN });
 				}
 			}
 		}
@@ -416,11 +430,11 @@ public:
 	GraphNode* m_Target = nullptr;
 
 private:
-	Container<GraphNode*> m_OpenList;
-	Container<GraphNode*> m_ClosedList;
+	Merigold::Container<GraphNode*> m_OpenList;
+	Merigold::Container<GraphNode*> m_ClosedList;
 
 private:
-	Container<GraphNode> m_Nodes;
+	Merigold::Container<GraphNode> m_Nodes;
 	int m_IDCounter = 0;
 	float m_LineCursor = 0.0f;
 };
