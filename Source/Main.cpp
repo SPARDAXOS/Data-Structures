@@ -68,32 +68,35 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 	try {
 		Profiler MainProfiler;
 
+		//Test traversals
+		//Do calcs
+		//Clean up (Graph, sorting, container, allocator, profiler)
 
-		Graph GraphTest;
-		MainProfiler.StartProfile("Graph");
-		GraphTest.LoadGraph("Vendor/AssignmentNodes.txt");
-		auto GraphResults = MainProfiler.EndProfile("Graph");
+		//Graph GraphTest;
+		//MainProfiler.StartProfile("Graph");
+		//GraphTest.LoadGraph("Vendor/AssignmentNodes.txt");
+		//auto GraphResults = MainProfiler.EndProfile("Graph");
+		//
+		//std::cout << "Graph loading took " << GraphResults->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
+		//std::cout << "Graph loading took " << GraphResults->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
+		//std::cout << "Graph loading took " << GraphResults->DurationAsSeconds() << " (Seconds) \n" << std::endl;
 		
-		std::cout << "Graph loading took " << GraphResults->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
-		std::cout << "Graph loading took " << GraphResults->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
-		std::cout << "Graph loading took " << GraphResults->DurationAsSeconds() << " (Seconds) \n" << std::endl;
 		
 		
-		
-		MainProfiler.StartProfile("Pathfinding");
-		auto Path = GraphTest.FindPath(*GraphTest.m_Start, *GraphTest.m_Target, false);
-		auto PathfindingResults = MainProfiler.EndProfile("Pathfinding");
-		
-		std::cout << "Pathfinding took " << PathfindingResults->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
-		std::cout << "Pathfinding took " << PathfindingResults->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
-		std::cout << "Pathfinding took " << PathfindingResults->DurationAsSeconds() << " (Seconds) \n" << std::endl;
+		//MainProfiler.StartProfile("Pathfinding");
+		//auto Path = GraphTest.FindPath(*GraphTest.m_Start, *GraphTest.m_Target, false);
+		//auto PathfindingResults = MainProfiler.EndProfile("Pathfinding");
+		//
+		//std::cout << "Pathfinding took " << PathfindingResults->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
+		//std::cout << "Pathfinding took " << PathfindingResults->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
+		//std::cout << "Pathfinding took " << PathfindingResults->DurationAsSeconds() << " (Seconds) \n" << std::endl;
 		
 		
 		//auto Lambda = [&GraphTest](){ GraphTest.FindPath(*GraphTest.m_Start, *GraphTest.m_Target, true); };
 		//auto Results = MainProfiler.RunIterativeProfile(Lambda, 9);
 		//std::cout << "Iterative profile took " << Results.m_Average << " (Mircoseconds)" << std::endl;
 
-		Merigold::Container<int> Array1;
+		//Merigold::Container<int> Array1;
 		//Array1.push_back(8);
 		//Array1.push_back(1);
 		//Array1.push_back(4);
@@ -113,12 +116,17 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		//std::cout << "Merge took " << MergeResults->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
 		//std::cout << "Merge took " << MergeResults->DurationAsSeconds() << " (Seconds) \n" << std::endl;
 
-		for (uint32 i = 0; i < 5000; i++)
-			Array1.push_back(rand());
-		
-		MainProfiler.StartProfile("Hello!");
-		Sorting::HeapSort(Array1.begin(), Array1.end());
-		auto MergeResults = MainProfiler.EndProfile("Hello!");
+
+
+
+
+
+		//for (uint32 i = 0; i < 5000; i++)
+		//	Array1.push_back(rand());
+		//
+		//MainProfiler.StartProfile("Hello!");
+		//Sorting::HeapSort(Array1.begin(), Array1.end());
+		//auto MergeResults = MainProfiler.EndProfile("Hello!");
 		//Add different results log for profiling with many iterations!
 
 
@@ -128,9 +136,59 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		//auto MergeResults = MainProfiler.QuickProfile(Lambda, 1);
 		
 
-		std::cout << "Merge took " << MergeResults->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
-		std::cout << "Merge took " << MergeResults->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
-		std::cout << "Merge took " << MergeResults->DurationAsSeconds() << " (Seconds) \n" << std::endl;
+
+		IterativeProfile Results;
+		//Sorting
+		//for (uint32 i = 0; i < 1000; i++) {
+		//	std::vector<int> Container;
+		//	for (uint32 elements = 0; elements < 50000; elements++)
+		//		Container.emplace_back(elements);
+		//
+		//	auto Lambda = [&Container]() { Sorting::MergeSort(Container.begin()._Ptr, Container.end()._Ptr); };
+		//	auto IterationResults = MainProfiler.RunIterativeProfile(Lambda, 1);
+		//
+		//	Results += IterationResults;
+		//}
+
+		//Containers
+		for (uint32 i = 0; i < 1000; i++) {
+			std::vector<int> Container;
+
+			auto Lambda = [&Container]() { 	
+				for (uint16 elements = 0; elements < 50000; elements++)
+					Container.emplace_back(elements); 
+			};
+			auto IterationResults = MainProfiler.RunIterativeProfile(Lambda, 1);
+
+			Results += IterationResults;
+		}
+
+		//Duration - Min - Max
+		for (uint32 i = 0; i < Results.m_Profiles.size(); i++) {
+
+			if (i == 0) {
+				Results.m_Max = Results.m_Profiles[i].m_Duration;
+				Results.m_Min = Results.m_Profiles[i].m_Duration;
+				continue;
+			}
+
+			if (Results.m_Min > Results.m_Profiles[i].m_Duration)
+				Results.m_Min = Results.m_Profiles[i].m_Duration;
+			if (Results.m_Max < Results.m_Profiles[i].m_Duration)
+				Results.m_Max = Results.m_Profiles[i].m_Duration;
+		}
+
+		//Average
+		MainProfiler.CalculateAverage(Results);
+
+		//Median
+		MainProfiler.CalculateMedian(Results);
+
+
+		std::cout << "Average: " << Results.AverageAsMicroseconds() << " (Microseconds)" << std::endl;
+		std::cout << "Median: " << Results.MedianAsMicroseconds() << " (Microseconds)" << std::endl;
+		std::cout << "Min: " << Results.MinAsMicroseconds() << " (Microseconds)" << std::endl;
+		std::cout << "Max: " << Results.MaxAsMicroseconds() << " (Microseconds)" << std::endl;
 
 		//Move Semantics Test
 		//Container<int> Array2(std::move(Array), Array.get_allocator());
@@ -143,22 +201,17 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		//Array.erase(Array.begin() + 1, Array.end()); //Needs testing 
 		//Array.clear();
 
-
-
-
-
-
 		//STD VS CONTAINER
 		//std::vector<Test> Vector;
-		//Container<Test> Container2;
+		//Merigold::Container<Test> Container2;
 		//MainProfiler.StartProfile("TestProfile");
 		//for (uint16 i = 0; i < 50000; i++)
 		//	Vector.emplace_back(i);
 		//
 		//auto results = MainProfiler.EndProfile("TestProfile");
-		//std::cout << "Vector took " << results->AsMicroseconds() << " (Mircoseconds)" << std::endl;
-		//std::cout << "Vector took " << results->AsMilliseconds() << " (Milliseconds)" << std::endl;
-		//std::cout << "Vector took " << results->AsSeconds() << " (Seconds) \n" << std::endl;
+		//std::cout << "Vector took " << results->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
+		//std::cout << "Vector took " << results->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
+		//std::cout << "Vector took " << results->DurationAsSeconds() << " (Seconds) \n" << std::endl;
 		//
 		//
 		//MainProfiler.StartProfile("TestProfile2");
@@ -166,9 +219,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
 		//	Container2.emplace_back(i);
 		//
 		//auto results2 = MainProfiler.EndProfile("TestProfile2");
-		//std::cout << "Container took " << results2->AsMicroseconds() << " (Mircoseconds)" << std::endl;
-		//std::cout << "Container took " << results2->AsMilliseconds() << " (Milliseconds)" << std::endl;
-		//std::cout << "Container took " << results2->AsSeconds() << " (Seconds)" << std::endl;
+		//std::cout << "Container took " << results2->DurationAsMicroseconds() << " (Mircoseconds)" << std::endl;
+		//std::cout << "Container took " << results2->DurationAsMilliseconds() << " (Milliseconds)" << std::endl;
+		//std::cout << "Container took " << results2->DurationAsSeconds() << " (Seconds)" << std::endl;
 	}
 	catch (const std::exception& exception) {
 		std::cerr << exception.what() << std::endl;

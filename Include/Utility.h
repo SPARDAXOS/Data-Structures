@@ -15,7 +15,6 @@ using uint32 = unsigned int;
 using uint64 = unsigned long long;
 
 
-
 class Vector2 final {
 public:
 	Vector2() noexcept = default;
@@ -34,12 +33,6 @@ public:
 	Vector2(Vector2&& other) noexcept = default;
 	Vector2& operator=(Vector2&& other) noexcept = default;
 
-
-	Vector2 operator-(const Vector2& other) noexcept {
-		return Vector2(this->x - other.x, this->y - other.y);
-	}
-
-
 	bool operator==(const Vector2& other) const noexcept {
 		if (this->x != other.x)
 			return false;
@@ -52,7 +45,6 @@ public:
 		return !(*this == other);
 	}
 
-
 public:
 	float x{ 0.0f };
 	float y{ 0.0f };
@@ -64,17 +56,9 @@ namespace {
 		return Vector2(lhs.x - rhs.x, lhs.y - rhs.y);
 	}
 
-
 	static inline float Distance(const Vector2& lhs, const Vector2& rhs) noexcept {
 		Vector2 ResultingVector = rhs - lhs;
 		return sqrtf(((ResultingVector.x * ResultingVector.x) + (ResultingVector.y * ResultingVector.y)) * 1.0f);
 	}
-
-
 }
-
-
-
-
-
 #endif // !MY_UTILITY

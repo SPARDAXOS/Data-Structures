@@ -68,7 +68,6 @@ public:
 		}
 	}
 
-
 	constexpr static inline void CountingSort(int* start, int* end) noexcept {
 		if (!ValidateRange(start, end))
 			return;
@@ -103,7 +102,7 @@ public:
 		if (!ValidateRange(start, end))
 			return;
 
-		DoQuickSort(start, end - 1);
+		RecursiveQuickSort(start, end - 1);
 	}
 
 	template<IsPointer Iterator>
@@ -118,7 +117,7 @@ public:
 		Iterator FirstHalfEnd = start + (SplitPoint - 1);
 
 		Iterator SecondHalfStart = start + SplitPoint;
-		Iterator SecondHalfEnd = end - 1;//Removing 1 that is the after end
+		Iterator SecondHalfEnd = end - 1;
 
 		std::pair<Iterator, Iterator> Range1 = MergePartition(FirstHalfStart, FirstHalfEnd);
 		std::pair<Iterator, Iterator> Range2 = MergePartition(SecondHalfStart, SecondHalfEnd);
@@ -141,6 +140,7 @@ public:
 			Heapify(start, i, 0);
 		}
 	}
+
 
 private: //Helpers
 	template<IsPointer Iterator>
@@ -167,6 +167,7 @@ private: //Helpers
 		*second = Temp;
 	}
 
+
 private: //Sorting Helpers
 	template<IsPointer Iterator>
 	constexpr static inline Iterator QuickSortPartition(Iterator start, Iterator end) noexcept {
@@ -189,19 +190,16 @@ private: //Sorting Helpers
 			if (LeftCursor >= RightCursor)
 				return RightCursor;
 
-			auto Temp = *LeftCursor;
-			*LeftCursor = *RightCursor;
-			*RightCursor = Temp;
+			Swap(LeftCursor, RightCursor);
 		}
 	}
 
 	template<IsPointer Iterator>
-	constexpr static inline void DoQuickSort(Iterator firstElement, Iterator lastElement) noexcept {
-
+	constexpr static inline void RecursiveQuickSort(Iterator firstElement, Iterator lastElement) noexcept {
 		if (firstElement < lastElement) {
 			Iterator Pivot = QuickSortPartition(firstElement, lastElement);
-			DoQuickSort(firstElement, Pivot);
-			DoQuickSort(Pivot + 1, lastElement);
+			RecursiveQuickSort(firstElement, Pivot);
+			RecursiveQuickSort(Pivot + 1, lastElement);
 		}
 	}
 
@@ -209,16 +207,13 @@ private: //Sorting Helpers
 	static std::pair<Iterator, Iterator> MergePartition(Iterator start, Iterator end) noexcept {
 
 		int64 RangeSize = (end - start) + 1;
-		if (RangeSize == 2) {
-			if (*start > *end) {
-				auto Temp = *start;
-				*start = *end;
-				*end = Temp;
-			}
+		if (RangeSize == 1)
+			return std::pair<Iterator, Iterator>(start, start);
+		else if (RangeSize == 2) {
+			if (*start > *end)
+				Swap(start, end);
 			return std::pair<Iterator, Iterator>(start, end);
 		}
-		else if (RangeSize == 1)
-			return std::pair<Iterator, Iterator>(start, start); //Just go back with the one element really..
 		else {
 			int64 SplitPoint = RangeSize / 2;
 
