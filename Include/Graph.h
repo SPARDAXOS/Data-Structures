@@ -44,11 +44,11 @@ public:
 	inline void CalculateGCost(const GraphNode& startingNode) noexcept {
 		m_GCost += Distance(m_Position, startingNode.m_Position);
 	}
-	inline void AddGCost(float value) noexcept {
-		m_GCost += value;
-	}
 	inline void CalculateHCost(const GraphNode& endNode) noexcept {
 		m_HCost = Distance(m_Position, endNode.m_Position);
+	}
+	constexpr inline void AddGCost(float value) noexcept {
+		m_GCost += value;
 	}
 
 public:
@@ -64,12 +64,9 @@ public:
 	float m_HCost{ 0.0f };
 };
 
-
-
 class Graph final {
 public:
 	enum class TraversalMethod { BREADTH_FIRST, DEPTH_FIRST };
-
 
 public:
 	Graph() noexcept = default;
@@ -81,38 +78,8 @@ public:
 	Graph(Graph&& other) noexcept = default;
 	Graph& operator=(Graph&& other) noexcept = default;
 
-
 public:
-	inline GraphNode& AddNode(Vector2 position) {
-		GraphNode NewNode;
-		NewNode.m_ID = m_IDCounter;
-		NewNode.m_Position = position;
-		m_IDCounter++;
-		return m_Nodes.emplace_back(NewNode);;
-	}
-	GraphNode* FindNode(Vector2 position)  noexcept {
-		for (auto& GraphNode : m_Nodes) {
-			if (GraphNode.m_Position.x == position.x && GraphNode.m_Position.y == position.y)
-				return &GraphNode;
-		}
-
-		return nullptr;
-	}
-
-	void Traverse(Vector2 startingPosition, TraversalMethod method) {
-		GraphNode* TargetNode = FindNode(startingPosition);
-		if (!TargetNode) {
-			printf("Failed to find node at X: %.3f Y: %.3f", startingPosition.x, startingPosition.y);
-			return;
-		}
-
-		ClearVisitedNodes();
-		if (method == TraversalMethod::BREADTH_FIRST)
-			BreadthFirst(*TargetNode);
-		else if (method == TraversalMethod::DEPTH_FIRST)
-			DepthFirst(*TargetNode);
-	}
-	void LoadGraph(const std::string_view directory) {
+	inline void LoadFromFile(const std::string_view directory) {
 		std::string UpperLine;
 		std::string LowerLine;
 
@@ -131,8 +98,21 @@ public:
 			TargetFile.close();
 		}
 	}
-	std::vector<GraphNode> FindPath(GraphNode& start, GraphNode& target, bool visualization = false)  noexcept {
-		std::vector<GraphNode> Path;
+	inline Merigold::Container<GraphNode> Traverse(GraphNode& start, GraphNode& target, TraversalMethod method) noexcept {
+		if (start == target || m_Nodes.size() == 0)
+			return {};
+
+		Merigold::Container<GraphNode> Buffer;
+		ClearVisitedNodes();
+		if (method == TraversalMethod::BREADTH_FIRST)
+			BreadthFirst(start, target, Buffer);
+		else if (method == TraversalMethod::DEPTH_FIRST)
+			DepthFirst(start, target, Buffer);
+
+		return Buffer;
+	}
+	inline Merigold::Container<GraphNode> FindPath(GraphNode& start, GraphNode& target, bool visualization = false)  noexcept {
+		Merigold::Container<GraphNode> Path;
 		if (start == target || m_Nodes.size() == 0) {
 			Path.emplace_back(start);
 			return Path;
@@ -160,7 +140,7 @@ public:
 				break;
 			}
 
-			m_ClosedList.push_back(CurrentNode); //Need to get a ref to the actual thing!
+			m_ClosedList.push_back(CurrentNode);
 			RemoveFromOpenedList(*CurrentNode);
 			for (uint32 index = 0; index < CurrentNode->m_Neighbours.size(); index++) {
 				auto AdjacentGraphNode = CurrentNode->m_Neighbours[index].first;
@@ -186,6 +166,8 @@ public:
 			}
 	
 			if (visualization) {
+				//Awfull but should be enough just to get a quick visualization on the path
+
 				std::cout << "\n" << std::endl;
 				std::cout << "Path Found: " << std::endl;
 
@@ -240,33 +222,50 @@ public:
 				std::cout << "\n" << std::endl;
 			}
 		}
-
 		return Path;
 	}
 
 private:
-	void DepthFirst(GraphNode& target) const {
-		target.m_Visited = true;
-		std::cout << "Visited Node " << target.m_ID << std::endl;
-		for (auto& neighbour : target.m_Neighbours) {
-			if (!neighbour.first->m_Visited)
-				DepthFirst(*neighbour.first);
+	inline bool DepthFirst(GraphNode& start, GraphNode& target, Merigold::Container<GraphNode>& buffer) const {
+
+		start.m_Visited = true;
+		buffer.emplace_back(start);
+
+		if (start == target)
+			return true;
+
+		for (auto& neighbour : start.m_Neighbours) {
+			if (!neighbour.first->m_Visited) {
+				auto Results = DepthFirst(*neighbour.first, target, buffer);
+				if (Results)
+					return true;
+			}
 		}
+
+		return false;
 	}
-	void BreadthFirst(GraphNode& startingNode) const {
+	inline void BreadthFirst(GraphNode& start, GraphNode& target, Merigold::Container<GraphNode>& buffer) const {
+
 		std::queue<GraphNode*> Nodes;
-		startingNode.m_Visited = true;
-		Nodes.push(&startingNode);
-		GraphNode* CurrentNode = &startingNode;
+
+		start.m_Visited = true;
+		Nodes.push(&start);
+		buffer.emplace_back(start);
+
+		GraphNode* CurrentNode = &start;
 		while (Nodes.size() != 0) {
+			
 			for (auto& neighbour : CurrentNode->m_Neighbours) {
 				if (!neighbour.first->m_Visited) {
+					buffer.emplace_back(*neighbour.first);
+					if (*neighbour.first == target)
+						return;
+
 					neighbour.first->m_Visited = true;
 					Nodes.push(neighbour.first);
 				}
 			}
 
-			std::cout << "Visited Node " << CurrentNode->m_ID << std::endl;
 			Nodes.pop();
 			if (Nodes.size() > 0)
 				CurrentNode = Nodes.front();
@@ -274,8 +273,8 @@ private:
 	}
 
 private:
-	void CheckForNodes(const std::string_view upperLine, const std::string_view lowerLine) {
-		std::vector<bool> UpperLineMappings;
+	inline void CheckForNodes(const std::string_view upperLine, const std::string_view lowerLine) {
+		std::vector<bool> UpperLineMappings; //Uses template specialization for <bool> to store each bool in a bit instead of 1 byte
 		std::vector<bool> LowerLineMappings;
 		static std::vector<bool> LastLineMappings;
 
@@ -298,7 +297,7 @@ private:
 
 		LastLineMappings = LowerLineMappings;
 	}
-	std::vector<bool> CheckLineForNodes(const std::string_view line) {
+	inline std::vector<bool> CheckLineForNodes(const std::string_view line) {
 		GraphNode* PreviousNode = nullptr;
 		std::vector<bool> NodesOnLine(line.size());
 
@@ -334,7 +333,7 @@ private:
 		}
 		return NodesOnLine;
 	}
-	void SetupVerticalConnections(std::vector<bool> upper, std::vector<bool> lower) {
+	inline void SetupVerticalConnections(std::vector<bool> upper, std::vector<bool> lower) {
 		for (unsigned int i = 0; i < upper.size(); i++) {
 			if (upper.at(i) && lower.at(i)) {
 				auto UpperNode = FindNode({ static_cast<float>(i), m_LineCursor - 2 });
@@ -347,7 +346,7 @@ private:
 			}
 		}
 	}
-	void SetupPreviousLineConnections(std::vector<bool> upper, std::vector<bool> previous) {
+	inline void SetupPreviousLineConnections(std::vector<bool> upper, std::vector<bool> previous) {
 		if (previous.size() == 0)
 			return;
 
@@ -363,6 +362,23 @@ private:
 			}
 		}
 	}
+
+private:
+	inline GraphNode& AddNode(Vector2 position) {
+			GraphNode NewNode;
+			NewNode.m_ID = m_IDCounter;
+			NewNode.m_Position = position;
+			m_IDCounter++;
+			return m_Nodes.emplace_back(NewNode);;
+		}
+	inline GraphNode* FindNode(Vector2 position) noexcept {
+			for (auto& GraphNode : m_Nodes) {
+				if (GraphNode.m_Position.x == position.x && GraphNode.m_Position.y == position.y)
+					return &GraphNode;
+			}
+
+			return nullptr;
+		}
 
 private:
 	inline GraphNode* GetNextInOpenList() noexcept {

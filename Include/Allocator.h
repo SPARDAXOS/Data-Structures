@@ -1,4 +1,4 @@
-
+#include <iostream>
 
 
 #ifndef CUSTOM_ALLOCATOR
@@ -29,18 +29,11 @@ public:
 	};
 
 public:
-	CustomAllocator() noexcept {
-		//std::cout << "My allocator ctor was called" << std::endl;
-	}
-	~CustomAllocator() {
-		//if (m_Log.m_AllocatedMemory > m_Log.m_DeallocatedMemory && m_Log.m_Allocations != m_Log.m_Deallocations)
-			//std::cout << "Memory was not deallocated!\n" << m_Log.m_AllocatedMemory << " Bytes was leaked!" << std::endl;
-	}
+	CustomAllocator() noexcept {}
+	~CustomAllocator() {}
 
 	template <class U>
-	inline CustomAllocator(const CustomAllocator<U>&) noexcept {
-		//std::cout << "My allocator custom ctor was called" << std::endl;
-	}
+	inline CustomAllocator(const CustomAllocator<U>&) noexcept {}
 
 public:
 	template<class T, class... args>

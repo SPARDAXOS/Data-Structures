@@ -1,4 +1,3 @@
-#include "Container.h"
 
 #ifndef SORTING_H
 #define SORTING_H
@@ -81,8 +80,8 @@ public:
 		}
 
 		int32 DefaultCount = 0;
-		Merigold::Container<int> Count; //Look into this!
-		Merigold::Container<int> ElementsCopy(start, end);
+		std::vector<int> Count; //Look into this!
+		std::vector<int> ElementsCopy(start, end);
 		Count.assign(++HighestElementValue, DefaultCount);
 
 		for (int* i = start; i < end; i++)
@@ -91,7 +90,7 @@ public:
 		for (uint32 i = 1; i < Count.size(); i++)
 			*(Count.begin() + i) += *(Count.begin() + i - 1);
 
-		for (int* i = ElementsCopy.end() - 1; i > ElementsCopy.begin() - 1; i--) {
+		for (int* i = ElementsCopy.end()._Ptr - 1; i > ElementsCopy.begin()._Ptr - 1; i--) {
 			Count[*i]--;
 			*(start + (Count[*i])) = *i;
 		}

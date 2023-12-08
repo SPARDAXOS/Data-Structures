@@ -1,5 +1,6 @@
 #include <Allocator.h>
 #include <algorithm>
+#include <memory>
 #include <math.h>
 #include <functional>
 

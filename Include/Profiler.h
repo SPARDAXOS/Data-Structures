@@ -141,7 +141,7 @@ public:
 		m_RunningProfiles++;
 		return true;
 	}
-	[[nodiscard]] inline std::optional<Profile> EndProfile(std::string_view id) noexcept {
+	[[nodiscard]] inline std::optional<Profile> StopProfile(std::string_view id) noexcept {
 		auto StoppingTime = m_Clock.now();
 		auto TargetUnit = FindUnit(std::string(id));
 		if (!TargetUnit.has_value()) {
